@@ -1,0 +1,3725 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkimPediA</title>
+  <meta name="description" content="未知の記事をパッと読んで記憶し、穴埋めの記述と絶妙に怪しい4択で記憶力を試すミニマル記憶クイズゲーム" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SkimPediA" />
+  <meta property="og:title" content="SkimPediA" />
+  <meta property="og:description" content="未知の記事をパッと読んで記憶し、穴埋めの記述と絶妙に怪しい4択で記憶力を試すミニマル記憶クイズゲーム" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="SkimPediA" />
+  <meta name="twitter:description" content="未知の記事をパッと読んで記憶し、穴埋めの記述と絶妙に怪しい4択で記憶力を試すミニマル記憶クイズゲーム" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-canvas: #f5f5f5;
+      --bg-surface: #ffffff;
+      --bg-soft: #efefef;
+      --ink-strong: #141414;
+      --ink-main: #222222;
+      --ink-muted: #666666;
+      --ink-faint: #8c8c8c;
+      --line-soft: #e2e2e2;
+      --line-strong: #181818;
+      --mark-yellow: rgba(250, 224, 96, 0.72);
+      --mark-pink: rgba(249, 168, 212, 0.65);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-pill: 999px;
+      --shadow-card: 0 18px 44px rgba(0, 0, 0, 0.06);
+      --shadow-pop: 0 10px 24px rgba(0, 0, 0, 0.12);
+      --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background-color: var(--bg-canvas);
+      color: var(--ink-main);
+      font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: clip;
+    }
+
+    .font-display {
+      font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+    }
+
+    .select-none {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .whitespace-nowrap {
+      white-space: nowrap;
+    }
+
+    /* Animations */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-10px) rotate(1.5deg); }
+    }
+
+    @keyframes floatReverse {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(8px) scale(1.03); }
+    }
+
+    @keyframes popIn {
+      0% { opacity: 0; transform: translateY(16px) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes fadeSlideUp {
+      0% { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideFromRight {
+      0% { opacity: 0; transform: translateX(24px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+
+    .anim-pop-1 { animation: popIn 0.55s var(--ease-spring) both; }
+    .anim-pop-2 { animation: popIn 0.65s var(--ease-spring) 0.08s both; }
+    .anim-pop-3 { animation: popIn 0.7s var(--ease-spring) 0.15s both; }
+    .anim-screen { animation: fadeSlideUp 0.4s var(--ease-spring) both; }
+    .anim-question { animation: slideFromRight 0.34s var(--ease-spring) both; }
+
+    /* Top Mute Button */
+    .top-audio-btn {
+      position: fixed;
+      top: 14px;
+      right: 16px;
+      z-index: 60;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--radius-pill);
+      border: 1.5px solid #d4d4d4;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      color: var(--ink-strong);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+      transition: transform 0.18s var(--ease-spring), background-color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .top-audio-btn:hover {
+      transform: translateY(-1px);
+      background: #ffffff;
+      border-color: var(--ink-strong);
+    }
+
+    .top-audio-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* Start Screen */
+    .start-screen {
+      position: relative;
+      min-height: 100vh;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px 120px;
+      overflow: hidden;
+    }
+
+    .bg-shape {
+      position: absolute;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-blob-left {
+      top: -6%;
+      left: -8%;
+      width: clamp(220px, 34vw, 460px);
+      height: clamp(240px, 42vh, 520px);
+      background: #e7e7e7;
+      border-radius: 38% 62% 54% 46% / 44% 38% 62% 56%;
+      animation: floatSlow 9s ease-in-out infinite;
+    }
+
+    .bg-ring-top {
+      top: 7%;
+      right: 14%;
+      width: clamp(46px, 6vw, 84px);
+      height: clamp(46px, 6vw, 84px);
+      border: 9px solid #e4e4e4;
+      border-radius: 50%;
+      animation: floatReverse 7.5s ease-in-out infinite;
+    }
+
+    .bg-dots-right {
+      top: 32%;
+      right: 4%;
+      display: grid;
+      grid-template-columns: repeat(4, 8px);
+      gap: 10px;
+      opacity: 0.7;
+      animation: floatSlow 8s ease-in-out infinite;
+    }
+
+    .bg-dots-right span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #dcdcdc;
+    }
+
+    .bg-blob-bottom-right {
+      bottom: -14%;
+      right: -6%;
+      width: clamp(260px, 38vw, 520px);
+      height: clamp(210px, 32vh, 390px);
+      background: #e6e6e6;
+      border-radius: 62% 38% 42% 58% / 55% 60% 40% 45%;
+      animation: floatReverse 10s ease-in-out infinite;
+    }
+
+    .start-center {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 680px;
+      width: 100%;
+    }
+
+    .start-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: var(--radius-pill);
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      color: var(--ink-muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+
+    .game-logo {
+      margin: 0;
+      font-size: clamp(50px, 9.5vw, 104px);
+      line-height: 1.04;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: var(--ink-strong);
+      text-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
+    }
+
+    .game-subtitle {
+      margin: 14px 0 34px;
+      font-size: clamp(14px, 2vw, 17px);
+      font-weight: 600;
+      color: var(--ink-muted);
+      line-height: 1.65;
+    }
+
+    .start-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 46px;
+      border-radius: var(--radius-pill);
+      border: 2px solid var(--ink-strong);
+      background: var(--ink-strong);
+      color: #ffffff;
+      font-size: clamp(17px, 2.2vw, 21px);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      box-shadow: var(--shadow-pop);
+      transition: transform 0.2s var(--ease-spring), background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .start-cta-btn:hover {
+      transform: translateY(-3px) scale(1.02);
+      background: #292929;
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
+    }
+
+    .start-cta-btn:active {
+      transform: scale(0.97);
+    }
+
+    .score-card-bottom-left {
+      position: fixed;
+      left: 20px;
+      bottom: 20px;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(96px, auto));
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(8px);
+      border: 1.5px solid #e2e2e2;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    }
+
+    .score-cell {
+      padding: 10px 16px;
+    }
+
+    .score-cell + .score-cell {
+      border-left: 1px solid #ececec;
+    }
+
+    .score-cell-label {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: var(--ink-faint);
+      margin-bottom: 2px;
+    }
+
+    .score-cell-value {
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--ink-strong);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Main Container (Full-width & low wasted margin) */
+    .app-shell {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 18px clamp(14px, 2.5vw, 32px) 48px;
+    }
+
+    .main-card {
+      background: var(--bg-surface);
+      border: 1.5px solid #e4e4e4;
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-card);
+      padding: clamp(18px, 2.6vw, 32px);
+    }
+
+    /* Header Bar */
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #eeeeee;
+    }
+
+    .top-bar-left {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .brand-mini {
+      font-weight: 900;
+      font-size: 14px;
+      color: var(--ink-strong);
+      letter-spacing: -0.01em;
+    }
+
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 11px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid #dcdcdc;
+      background: #f7f7f7;
+      color: var(--ink-main);
+    }
+
+    .pill-badge.dark {
+      background: var(--ink-strong);
+      border-color: var(--ink-strong);
+      color: #ffffff;
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .timer-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      border: 1.5px solid #e0e0e0;
+      background: #fafafa;
+      font-size: 13px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--ink-strong);
+    }
+
+    .timer-pill.warning {
+      background: var(--ink-strong);
+      border-color: var(--ink-strong);
+      color: #ffffff;
+    }
+
+    .btn-ghost-sm {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid #d8d8d8;
+      background: #ffffff;
+      color: var(--ink-main);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s var(--ease-spring);
+    }
+
+    .btn-ghost-sm:hover:not(:disabled) {
+      background: #f4f4f4;
+      border-color: #bdbdbd;
+    }
+
+    .btn-ghost-sm:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .btn-ghost-sm:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 22px;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--ink-strong);
+      background: var(--ink-strong);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.18s var(--ease-spring), background-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: #2a2a2a;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid #cccccc;
+      background: #ffffff;
+      color: var(--ink-strong);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.18s var(--ease-spring), background-color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #f5f5f5;
+      border-color: var(--ink-strong);
+    }
+
+    .btn-secondary:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    /* Guide Banner */
+    .guide-banner {
+      margin-top: 12px;
+      padding: 11px 16px;
+      border-radius: var(--radius-md);
+      background: #171717;
+      color: #ffffff;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.55;
+    }
+
+    /* Mode Cards */
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .mode-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-align: left;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      border: 1.5px solid #e2e2e2;
+      background: #fafafa;
+      color: var(--ink-main);
+      cursor: pointer;
+      transition: transform 0.22s var(--ease-spring), border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.22s ease;
+    }
+
+    .mode-card:hover {
+      transform: translateY(-4px);
+      background: #ffffff;
+      border-color: var(--ink-strong);
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
+    }
+
+    .mode-card:active {
+      transform: scale(0.985);
+    }
+
+    /* Article Header & Toolbar */
+    .article-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .article-title {
+      margin: 8px 0 4px;
+      font-size: clamp(24px, 3.2vw, 34px);
+      font-weight: 900;
+      line-height: 1.25;
+      color: var(--ink-strong);
+      letter-spacing: -0.02em;
+    }
+
+    .article-meta {
+      font-size: 12.5px;
+      color: var(--ink-muted);
+      font-weight: 500;
+    }
+
+    .article-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Marker Toolbar */
+    .marker-bar {
+      margin-top: 16px;
+      padding: 10px 14px;
+      border-radius: 16px;
+      background: #f7f7f7;
+      border: 1px solid #e5e5e5;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 14px;
+    }
+
+    .marker-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .marker-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ink-strong);
+      margin-right: 2px;
+    }
+
+    .marker-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      border: 1.5px solid #d4d4d4;
+      background: #ffffff;
+      color: var(--ink-strong);
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.15s var(--ease-spring), border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .marker-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--ink-strong);
+    }
+
+    .marker-btn.active-yellow {
+      background: #fef08a;
+      border-color: #181818;
+    }
+
+    .marker-btn.active-pink {
+      background: #fbcfe8;
+      border-color: #181818;
+    }
+
+    .marker-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.28);
+      flex-shrink: 0;
+    }
+
+    .marker-dot.yellow { background: #facc15; }
+    .marker-dot.pink { background: #f472b6; }
+
+    .marker-right-tools {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .marker-hint-text {
+      font-size: 12px;
+      color: var(--ink-muted);
+      font-weight: 500;
+    }
+
+    .memo-toggle-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 13px;
+      border-radius: var(--radius-pill);
+      border: 1.5px solid var(--ink-strong);
+      background: #ffffff;
+      color: var(--ink-strong);
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s var(--ease-spring);
+    }
+
+    .memo-toggle-btn.is-open,
+    .memo-toggle-btn:hover {
+      background: var(--ink-strong);
+      color: #ffffff;
+    }
+
+    .memo-toggle-btn:active {
+      transform: scale(0.97);
+    }
+
+    .memo-has-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #16a34a;
+      display: inline-block;
+    }
+
+    /* Collapsible Memo Drawer */
+    .memo-drawer {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1.5px solid #dcdcdc;
+      background: #fafafa;
+      animation: fadeSlideUp 0.25s var(--ease-spring) both;
+    }
+
+    .memo-drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .memo-textarea {
+      width: 100%;
+      min-height: 92px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1.5px solid #d6d6d6;
+      background: #ffffff;
+      color: var(--ink-strong);
+      font-size: 13.5px;
+      line-height: 1.6;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .memo-textarea:focus {
+      outline: none;
+      border-color: var(--ink-strong);
+    }
+
+    /* Article Body (Full Width) */
+    .article-body {
+      margin-top: 18px;
+      padding: clamp(18px, 2.5vw, 28px);
+      border-radius: 20px;
+      border: 1px solid #e7e7e7;
+      background: #fcfcfc;
+      font-size: clamp(15px, 1.35vw, 17px);
+      line-height: 1.92;
+      color: var(--ink-main);
+    }
+
+    .article-body h3 {
+      margin: 22px 0 8px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #e5e5e5;
+      font-size: clamp(17px, 1.6vw, 20px);
+      font-weight: 800;
+      color: var(--ink-strong);
+    }
+
+    .article-body h3:first-child {
+      margin-top: 0;
+    }
+
+    .article-body p {
+      margin: 0 0 14px;
+    }
+
+    .article-body p:last-child {
+      margin-bottom: 0;
+    }
+
+    mark.user-mark {
+      padding: 1px 2px;
+      border-radius: 4px;
+      color: var(--ink-strong);
+      cursor: pointer;
+    }
+
+    mark.user-mark.yellow {
+      background: var(--mark-yellow);
+    }
+
+    mark.user-mark.pink {
+      background: var(--mark-pink);
+    }
+
+    /* Bottom Action Bar */
+    .bottom-action-bar {
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid #eeeeee;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    /* Quiz Choices */
+    .choice-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+      padding: 14px 18px;
+      border-radius: 16px;
+      border: 1.5px solid #dddddd;
+      background: #ffffff;
+      color: var(--ink-strong);
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.5;
+      cursor: pointer;
+      transition: transform 0.16s var(--ease-spring), border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .choice-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: var(--ink-strong);
+      background: #fafafa;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+    }
+
+    .choice-btn:active:not(:disabled) {
+      transform: scale(0.985);
+    }
+
+    .choice-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      text-decoration: line-through;
+    }
+
+    .choice-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: #f0f0f0;
+      border: 1px solid #d8d8d8;
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--ink-strong);
+      flex-shrink: 0;
+    }
+
+    /* Result Screen */
+    .result-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .stat-box {
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid #e4e4e4;
+      background: #fafafa;
+    }
+
+    .stat-box-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink-muted);
+    }
+
+    .stat-box-value {
+      margin-top: 4px;
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 900;
+      color: var(--ink-strong);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .review-item {
+      padding: 16px 18px;
+      border-radius: 16px;
+      border: 1.5px solid #e4e4e4;
+      background: #ffffff;
+    }
+
+    @media (max-width: 640px) {
+      .top-audio-btn {
+        top: 10px;
+        right: 10px;
+        padding: 6px 11px;
+      }
+
+      .score-card-bottom-left {
+        left: 12px;
+        bottom: 12px;
+      }
+
+      .score-cell {
+        padding: 8px 12px;
+      }
+
+      .marker-hint-text {
+        display: none;
+      }
+
+      .marker-right-tools {
+        margin-left: 0;
+      }
+    }
+
+    /* 採点画面：元記事と出題箇所 */
+    .article-review-panel {
+      margin-top: 14px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: #ffffff;
+      border: 1.5px solid #e2e2e2;
+    }
+    mark.src-mark {
+      background: var(--mark-yellow);
+      color: inherit;
+      border-radius: 4px;
+      padding: 1px 2px;
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
+    }
+    mark.src-mark.flash {
+      animation: srcFlash 1.4s ease 1;
+    }
+    @keyframes srcFlash {
+      0%, 60% { background: var(--mark-pink); box-shadow: 0 0 0 4px rgba(249, 168, 212, 0.45); }
+      100% { background: var(--mark-yellow); box-shadow: 0 0 0 0 rgba(249, 168, 212, 0); }
+    }
+    .src-answer {
+      font-weight: 800;
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+    }
+    .src-badge {
+      display: inline-block;
+      margin: 0 3px;
+      padding: 1px 8px;
+      border-radius: 999px;
+      background: #141414;
+      color: #ffffff;
+      font-size: 10.5px;
+      font-weight: 800;
+      line-height: 1.6;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    /* 採点画面：スコア共有 */
+    .share-card {
+      margin-top: 16px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: #fafafa;
+      border: 1.5px solid #e2e2e2;
+    }
+    /* キーボードのない端末（スマホなど）ではキー操作の説明を隠す */
+    @media (hover: none) {
+      .kbd-hint {
+        display: none;
+      }
+    }
+
+    /* 自由記述の回答欄 */
+    .answer-hint {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin: 4px 0 12px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: #f4f4f4;
+      font-size: 14px;
+      color: #333333;
+    }
+    .answer-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .answer-input {
+      flex: 1 1 240px;
+      min-width: 0;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 2px solid #141414;
+      background: #ffffff;
+      font-family: inherit;
+      font-size: 18px;
+      font-weight: 700;
+      color: #141414;
+      outline: none;
+    }
+    .answer-input:focus {
+      box-shadow: 0 0 0 4px rgba(20, 20, 20, 0.12);
+    }
+    .answer-note {
+      min-height: 18px;
+      margin-top: 8px;
+      font-size: 12.5px;
+      color: #c0392b;
+    }
+
+    /* 自信度ベット */
+    .bet-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .bet-label {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #555555;
+    }
+    .bet-btn {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1px;
+      padding: 8px 14px;
+      border-radius: 14px;
+      border: 1.5px solid #dcdcdc;
+      background: #ffffff;
+      color: #141414;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.4;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .bet-btn small {
+      font-size: 11px;
+      font-weight: 700;
+      color: #777777;
+    }
+    .bet-btn:hover:not(:disabled):not(.active) {
+      border-color: #9a9a9a;
+    }
+    .bet-btn.active {
+      border-color: #141414;
+      background: #141414;
+      color: #ffffff;
+    }
+    .bet-btn.active small {
+      color: #d0d0d0;
+    }
+    .bet-btn.hot.active {
+      border-color: #d9482b;
+      background: #d9482b;
+    }
+    .bet-btn.hot.active small {
+      color: #ffe3dc;
+    }
+    .bet-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ハードモード：流れる記事 */
+    .flow-sent {
+      transition: opacity 1.4s ease, filter 1.4s ease;
+    }
+    .flow-sent.fading {
+      opacity: 0.35;
+    }
+    .flow-sent.collapsed {
+      display: none;
+    }
+    .article-body p.all-gone {
+      display: none;
+    }
+    .flow-sent.gone {
+      opacity: 0;
+      filter: blur(6px);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .flow-bar {
+      flex: 0 0 160px;
+      height: 8px;
+      border-radius: 999px;
+      background: #e4e4e4;
+      overflow: hidden;
+    }
+    .flow-bar > i {
+      display: block;
+      height: 100%;
+      width: 100%;
+      background: #141414;
+      transition: width 0.25s linear;
+    }
+
+    /* 友達対決 */
+    .challenge-banner {
+      margin: 22px auto 0;
+      max-width: 440px;
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: #ffffff;
+      border: 1.5px solid #141414;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .vs-banner {
+      margin-top: 16px;
+      padding: 14px 18px;
+      border-radius: 18px;
+      background: #fafafa;
+      border: 1.5px solid #141414;
+      text-align: center;
+    }
+    .share-preview {
+      display: block;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 0 12px;
+      border-radius: 14px;
+      border: 1px solid #e2e2e2;
+    }
+  </style>
+</head>
+<body>
+  <!-- リンクのプレビューなど、JSを実行しない読み取りでは、この紹介文が本文として扱われます -->
+  <div id="root">
+    <h1>SkimPediA</h1>
+    <p>未知の記事をパッと読んで記憶し、穴埋めの記述と絶妙に怪しい4択で記憶力を試すミニマル記憶クイズゲーム</p>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. Web Audio API Sound Effects
+    // ==========================================
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let isMuted = false;
+
+    function ensureAudio() {
+      if (isMuted) return null;
+      if (!audioCtx && AudioCtx) {
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+      return audioCtx;
+    }
+
+    function playTap() {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.exponentialRampToValueAtTime(240, now + 0.045);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.055);
+    }
+
+    function playPageFlip() {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const bufferSize = Math.floor(ctx.sampleRate * 0.07);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.45));
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1400, now);
+      filter.Q.setValueAtTime(1.2, now);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noise.start(now);
+    }
+
+    function playWoodBlock() {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(340, now);
+      osc.frequency.exponentialRampToValueAtTime(175, now + 0.07);
+      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.085);
+    }
+
+    function playQuizStartChime() {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const notes = [523.25, 659.25, 783.99];
+      notes.forEach((freq, idx) => {
+        const now = ctx.currentTime + idx * 0.075;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.19);
+      });
+    }
+
+    function playTickWarning() {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.045);
+    }
+
+    function playResultArpeggio() {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      notes.forEach((freq, idx) => {
+        const now = ctx.currentTime + idx * 0.08;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.075, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.26);
+      });
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      const icon = document.getElementById('audioIcon');
+      const label = document.getElementById('audioLabel');
+      if (icon) icon.textContent = isMuted ? '🔇' : '🔊';
+      if (label) label.textContent = isMuted ? '音: OFF' : '音: ON';
+      if (!isMuted) playTap();
+    }
+
+    // ==========================================
+    // 2. Modes & Sample Articles
+    // ==========================================
+    const MODES = {
+      tutorial: {
+        id: 'tutorial',
+        name: 'チュートリアル',
+        timeLimitSec: 600,
+        questionCount: 3,
+        minChars: 250,
+        desc: '練習用記事で、暗記・マーカー・メモ・穴埋め記述と4択の流れを体験できる入門モードです。'
+      },
+      easy: {
+        id: 'easy',
+        name: 'イージー',
+        timeLimitSec: 600,
+        questionCount: 5,
+        minChars: 450,
+        desc: '比較的読みやすい記事と5問構成で、テンポよく記憶力クイズを楽しめます。'
+      },
+      normal: {
+        id: 'normal',
+        name: 'ノーマル',
+        timeLimitSec: 600,
+        questionCount: 10,
+        minChars: 800,
+        desc: '本格的な記事を暗記して全10問に挑戦するスタンダードモードです。'
+      },
+      hard: {
+        id: 'hard',
+        name: 'ハード',
+        timeLimitSec: 600,
+        questionCount: 10,
+        minChars: 800,
+        flow: true,
+        desc: '記事が時間とともに消えていくモード。消える前に読み切って覚えられるかが勝負です（マーカーは使えません）。全10問です。'
+      },
+      daily: {
+        id: 'daily',
+        name: '今日の記事',
+        timeLimitSec: 600,
+        questionCount: 10,
+        minChars: 800,
+        desc: '毎日、全員共通の1記事に挑戦するデイリーモード。難易度はノーマルと同じ全10問で、日本時間の0時に切り替わります。'
+      }
+    };
+
+    const TUTORIAL_ARTICLE = {
+      title: '太陽系（練習用記事）',
+      genre: '科学・自然',
+      difficulty: '★☆☆',
+      sections: [
+        {
+          heading: '太陽系の概要',
+          paragraphs: [
+            '太陽系は、中心にある恒星「太陽」とその重力によって周囲を公転する8個の惑星、準惑星、衛星、小惑星などから構成される天体システムです。太陽系全体の質量の約99.86パーセントを太陽が占めています。'
+          ]
+        },
+        {
+          heading: '惑星の構成と分類',
+          paragraphs: [
+            '太陽に近い側から水星、金星、地球、火星、木星、土星、天王星、海王星の8惑星が並びます。内側4つは岩石と金属が主成分の地球型惑星で、外側4つはガスや氷を主体とする巨大惑星です。',
+            'かつて第9惑星とされていた冥王星は、2006年の国際天文学連合の総会において「準惑星」に再分類されました。'
+          ]
+        }
+      ],
+      questions: [
+        {
+          prompt: '太陽系全体の質量の約何パーセントを太陽が占めていますか？',
+          answer: '99.86パーセント',
+          accept: ['約99.86パーセント'],
+          sourceText: '太陽系全体の質量の約99.86パーセントを太陽が占めています。'
+        },
+        {
+          prompt: '太陽に近い側から数えて、外側の巨大惑星の先頭にあたる惑星はどれですか？',
+          answer: '木星',
+          distractors: ['火星', '土星', '天王星'],
+          sourceText: '水星、金星、地球、火星、木星、土星、天王星、海王星の8惑星が並びます。'
+        },
+        {
+          prompt: '冥王星が「準惑星」に再分類されたのは何年の総会ですか？',
+          answer: '2006年',
+          sourceText: 'かつて第9惑星とされていた冥王星は、2006年の国際天文学連合の総会において「準惑星」に再分類されました。'
+        }
+      ]
+    };
+
+    const FALLBACK_ARTICLES = [
+      {
+        title: '深海生物',
+        genre: '科学・自然',
+        difficulty: '★★☆',
+        sections: [
+          {
+            heading: '深海の環境',
+            paragraphs: [
+              '一般的に水深200メートル以深を「深海」と呼びます。水深が10メートル増すごとに水圧は約1気圧ずつ高くなり、水深2000メートルでは約200気圧に達します。',
+              '太陽光は水深200メートル付近までしか届かず、それより深い場所では光合成が行われないため、生物の多くは上から落ちてくる有機物や熱水噴出孔の化学合成に依存しています。'
+            ]
+          },
+          {
+            heading: '深海生物の特徴',
+            paragraphs: [
+              '高い水圧や低水温、餌の少なさに適応するため、体の骨格や筋肉を軽くした魚や、発光器官を持つ生物が多く見られます。チョウチンアンコウの仲間では、頭部の発光器で獲物を誘引することが知られています。'
+            ]
+          }
+        ]
+      },
+      {
+        title: '活版印刷',
+        genre: '歴史・文化',
+        difficulty: '★★☆',
+        sections: [
+          {
+            heading: '活版印刷の発展',
+            paragraphs: [
+              '文字を1文字ずつ独立した「活字」として作り、組み合わせて印刷する方式を活版印刷と呼びます。東アジアでは11世紀の北宋時代に畢昇が膠泥活字を考案し、高麗でも金属活字が用いられました。',
+              'ヨーロッパでは15世紀半ばにヨハネス・グーテンベルクが金属活字や印刷機などを組み合わせたシステムを実用化し、書物の大量生産と知識の普及に大きな転換点をもたらしました。'
+            ]
+          },
+          {
+            heading: '近代への広がり',
+            paragraphs: [
+              '活版印刷の普及によって新聞や書籍が広く読まれるようになり、教育や科学技術の情報伝達が飛躍的に速まりました。'
+            ]
+          }
+        ]
+      },
+      {
+        title: '発酵と腐敗',
+        genre: '科学・自然',
+        difficulty: '★☆☆',
+        sections: [
+          {
+            heading: '微生物による変化',
+            paragraphs: [
+              '酵母や乳酸菌、麹菌などの微生物が有機物を分解する働きのうち、人間にとって有用な変化をもたらすものを「発酵」、有害な物質を生じたり不快な臭いを出したりするものを「腐敗」と呼ぶのが一般的です。',
+              '生物学的にはどちらも微生物の代謝活動であり、環境条件や関わる菌の種類によって結果が異なります。'
+            ]
+          },
+          {
+            heading: '食文化との関わり',
+            paragraphs: [
+              '味噌や醤油、チーズ、パン、ヨーグルトなどは発酵を利用した代表的な食品であり、保存性の向上や独特の風味を生み出す役割を果たしています。'
+            ]
+          }
+        ]
+      },
+      {
+        title: '日本の灯台',
+        genre: '社会・地理',
+        difficulty: '★★☆',
+        sections: [
+          {
+            heading: '近代灯台の始まり',
+            paragraphs: [
+              '日本の近代的な洋式灯台は、幕末の慶応4年（1868年）に締結された江戸条約（改税約書）を契機に建設が進められました。最初に点灯した洋式灯台は神奈川県の観音埼灯台で、1869年（明治2年）に初点灯しました。',
+              'フランス人技師レオンス・ヴェルニーらが設計や指導に関わり、航海の安全を支えるインフラとして各地へ広がりました。'
+            ]
+          },
+          {
+            heading: '現在の役割',
+            paragraphs: [
+              'GPSやレーダーなどの電子航行援助施設が発達した現在でも、灯台は沿岸航行の目印や気象・海象観測の拠点として重要な役割を担っています。'
+            ]
+          }
+        ]
+      }
+    ];
+
+    // ==========================================
+    // 3. Game State & Storage
+    // ==========================================
+    const STORAGE_KEY = 'sokuseki_pedia_scores_v1';
+
+    function loadScores() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { last: null, high: 0 };
+        const parsed = JSON.parse(raw);
+        return {
+          last: typeof parsed.last === 'number' ? parsed.last : null,
+          high: typeof parsed.high === 'number' ? parsed.high : 0
+        };
+      } catch {
+        return { last: null, high: 0 };
+      }
+    }
+
+    function saveScore(score) {
+      const current = loadScores();
+      const updated = {
+        last: score,
+        high: Math.max(current.high || 0, score)
+      };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    }
+
+    const state = {
+      screen: 'start', // 'start' | 'mode' | 'loading' | 'memorize' | 'quiz' | 'result'
+      modeId: 'tutorial',
+      article: null,
+      rerollUsed: false,
+      activeMarkerColor: 'yellow', // 'yellow' | 'pink'
+      memoOpen: false,
+      memoText: '',
+      timeLeftSec: 600,
+      timerId: null,
+      questions: [],
+      qIndex: 0,
+      draftAnswer: '', // 回答欄に入力中の文字
+      eliminatedChoices: [], // 50:50で消した選択肢（4択の問題）
+      hintUsedForCurrent: false,
+      answers: [], // { question, chosen, isCorrect, isSkipped, pointsEarned }
+      score: 0,
+      scores: loadScores(),
+      showArticleReview: false,
+      dailyKey: null,
+      shareBlob: null,
+      confident: false, // 今の問題で「自信あり」を選んでいるか
+      seed: null, // 問題の並びを決める種（勝負リンクで同じ問題を再現するため）
+      challenge: null, // 開いたリンクに含まれていた挑戦状
+      activeChallenge: null, // 今プレイ中の挑戦状（結果画面で相手と比べる）
+      challengeError: false,
+      flowStartMs: 0, // ハードモードで記事が消え始める基準時刻
+      loadToken: 0 // 記事取得中に画面を離れた時の古い結果を捨てるため
+    };
+
+    function formatTime(sec) {
+      const s = Math.max(0, sec);
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+    }
+
+    function countArticleChars(article) {
+      if (!article || !article.sections) return 0;
+      return article.sections.reduce((acc, sec) => {
+        const hLen = (sec.heading || '').length;
+        const pLen = (sec.paragraphs || []).join('').length;
+        return acc + hLen + pLen;
+      }, 0);
+    }
+
+    function estimateReadMinutes(chars) {
+      return Math.max(1, Math.ceil(chars / 350));
+    }
+
+    function stopTimer() {
+      if (state.timerId) {
+        clearInterval(state.timerId);
+        state.timerId = null;
+      }
+    }
+
+    function startTimer() {
+      stopTimer();
+      state.timerId = setInterval(() => {
+        if (state.screen !== 'memorize' && state.screen !== 'quiz') return;
+        state.timeLeftSec -= 1;
+        if (state.timeLeftSec <= 10 && state.timeLeftSec > 0) {
+          playTickWarning();
+        }
+        if (state.timeLeftSec <= 0) {
+          state.timeLeftSec = 0;
+          stopTimer();
+          finishGame();
+          return;
+        }
+        updateTimerDOM();
+      }, 1000);
+    }
+
+    function updateTimerDOM() {
+      const el = document.getElementById('timerDisplay');
+      if (!el) return;
+      el.textContent = formatTime(state.timeLeftSec);
+      if (state.timeLeftSec <= 60) {
+        el.classList.add('warning');
+      } else {
+        el.classList.remove('warning');
+      }
+    }
+
+    // ==========================================
+    // 4. Wikipedia Fetch & Tricky 4-Choice Generator
+    // ==========================================
+    // 通常は Math.random。日替わりモードや勝負リンクでは種から作った乱数に差し替え、全員同じ問題にする
+    let rng = Math.random;
+    function hashSeed(str) {
+      let h = 1779033703 ^ String(str).length;
+      for (let i = 0; i < str.length; i++) {
+        h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+        h = (h << 13) | (h >>> 19);
+      }
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      return (h ^ (h >>> 16)) >>> 0;
+    }
+    function mulberry32(a) {
+      return function () {
+        a |= 0; a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    function withSeed(seedStr, fn) {
+      const prev = rng;
+      rng = mulberry32(hashSeed(seedStr));
+      try {
+        return fn();
+      } finally {
+        rng = prev;
+      }
+    }
+
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    // ==========================================
+    // 4a. 自由記述：答え合わせ・ヒント・問題の作成
+    // ==========================================
+
+    // 答えの比較用に表記をそろえる
+    //  ・全角/半角、英字の大小、空白、中黒（・）、ハイフン、かぎ括弧は無視
+    //  ・ひらがなはカタカナとして扱う（「ちょうちんあんこう」でもOK）
+    //  ・単位の表記ゆれ（メートル/m、パーセント/%）、数字のカンマ、先頭の「約」は無視
+    function normalizeAnswer(str) {
+      let t = String(str || '').normalize('NFKC').toLowerCase();
+      t = t.replace(/[\u3041-\u3096]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+      t = t.replace(/(\d),(?=\d{3}(\D|$))/g, '$1');
+      t = t.replace(/キロメートル/g, 'km').replace(/メートル/g, 'm').replace(/パーセント/g, '%');
+      t = t.replace(/[\s・･·\-‐‑–—\u2212「」『』"'“”]/g, '');
+      t = t.replace(/^約/, '');
+      return t;
+    }
+
+    function checkAnswer(q, input) {
+      if (q.type === 'choice') return String(input) === q.answer;
+      const user = normalizeAnswer(input);
+      if (!user) return false;
+      return [q.answer, ...(q.accept || [])].some(ans => {
+        const norm = normalizeAnswer(ans);
+        if (user === norm) return true;
+        // 答えが「2006年」のような数字＋単位の時は、数字だけ（2006）でも正解にする
+        const m = norm.match(/^(\d+(?:\.\d+)?)\D+$/);
+        return !!m && user === m[1];
+      });
+    }
+
+    function getAnswerCore(answer) {
+      return String(answer || '').replace(/[・･\s\u3000]/g, '');
+    }
+
+    function getFirstChar(answer) {
+      return [...getAnswerCore(answer)][0] || '';
+    }
+
+    // 「カタカナで4文字」「漢字で3文字」のような、答えの形のヒント
+    function describeAnswerShape(answer) {
+      const raw = String(answer || '');
+      const hasDot = /[・･]/.test(raw);
+      const core = getAnswerCore(raw);
+      const len = [...core].length;
+      let desc = '';
+      const num = core.match(/^[0-9０-９]+(?:[.．][0-9０-９]+)?(\D+)$/);
+      if (num) {
+        desc = `数字＋「${num[1]}」`;
+      } else if (/^[ァ-ヶー]+$/.test(core)) {
+        desc = 'カタカナ';
+      } else if (/^[一-龠々]+$/.test(core)) {
+        desc = '漢字';
+      } else if (/^[ぁ-ゖー]+$/.test(core)) {
+        desc = 'ひらがな';
+      } else if (/^[A-Za-z]+$/.test(core)) {
+        desc = 'アルファベット';
+      } else {
+        const kinds = [];
+        if (/[一-龠々]/.test(core)) kinds.push('漢字');
+        if (/[ぁ-ゖ]/.test(core)) kinds.push('ひらがな');
+        if (/[ァ-ヶ]/.test(core)) kinds.push('カタカナ');
+        if (/[0-9０-９]/.test(core)) kinds.push('数字');
+        if (/[A-Za-z]/.test(core)) kinds.push('英字');
+        desc = kinds.length >= 2 ? `${kinds.join('・')}まじり` : (kinds[0] || '');
+      }
+      return `${desc}で${len}文字` + (hasDot ? '（「・」は入力不要）' : '');
+    }
+
+    function splitIntoSentences(text) {
+      return String(text || '')
+        .replace(/\s+/g, ' ')
+        .split(/(?<=[。．！？!?])/)
+        .map(s => s.trim())
+        .filter(s => s.length >= 8);
+    }
+
+    function wordKind(w) {
+      if (/^[0-9０-９]/.test(w)) return 'num';
+      if (/^[ァ-ヴー・]+$/.test(w)) return 'kana';
+      if (/^[A-Za-z]/.test(w)) return 'latin';
+      return 'kanji';
+    }
+
+    // 近い数字ほど紛らわしい（難しい）ので、小さな差を先に使う
+    function getNumericDeltas() {
+      return [...shuffle([-5, -3, -2, -1, 1, 2, 3, 5]), ...shuffle([-10, -7, 7, 10])];
+    }
+
+    // 数字＋単位（例：2006年、99.86パーセント、15世紀）から、近い数字の紛らわしい選択肢を作る
+    function makeNumericDistractors(ans) {
+      const m = ans.match(/^([0-9]+)(?:\.([0-9]+))?(.*)$/);
+      if (!m || !m[3]) return null;
+      const unit = m[3];
+      const list = [];
+      const push = (s, c) => {
+        if (c <= 0) return;
+        if (unit === '月' && c > 12) return;
+        if (unit === '日' && c > 31) return;
+        if (s !== ans && !list.includes(s)) list.push(s);
+      };
+
+      if (m[2] !== undefined) {
+        const decimals = m[2].length;
+        const base = parseFloat(`${m[1]}.${m[2]}`);
+        const step = Math.pow(10, -decimals);
+        for (const d of getNumericDeltas()) {
+          const c = base + d * step;
+          push(c.toFixed(decimals) + unit, c);
+          if (list.length >= 3) break;
+        }
+      } else {
+        const num = parseInt(m[1], 10);
+        for (const d of getNumericDeltas()) {
+          const c = num + d;
+          push(`${c}${unit}`, c);
+          if (list.length >= 3) break;
+        }
+      }
+      return list.length === 3 ? list : null;
+    }
+
+    // 記事が短くて選択肢が足りない時だけ使う、他の記事由来の語句プール
+    let genericPoolCache = null;
+    function getGenericPool() {
+      if (!genericPoolCache) {
+        const set = new Set();
+        FALLBACK_ARTICLES.forEach(a => {
+          const text = a.sections.flatMap(s => s.paragraphs || []).join('');
+          splitIntoSentences(text).forEach(sent => {
+            extractArticleTargets(sent, a.title).forEach(t => set.add(t));
+          });
+        });
+        genericPoolCache = [...set];
+      }
+      return genericPoolCache;
+    }
+
+    // 4択の選択肢（まちがい3つ）を選ぶ。
+    //  ・記事の中の具体的な用語（strongPool）を優先し、一般的な語（weakPool）は足りない時だけ使う
+    //  ・同じ種類（漢字／カタカナ…）で、長さが近いものを優先する（紛らわしくする）
+    //  ・問題文に出ている語、答えと同じ漢字を含む語（「書物」に対する「書籍」のような同義語）は選ばない
+    function pickDistractors(target, maskedSentence, strongPool, weakPool = []) {
+      const kind = wordKind(target);
+      const usable = t =>
+        t !== target &&
+        !target.includes(t) &&
+        !t.includes(target) &&
+        !maskedSentence.includes(t) &&
+        !(kind === 'kanji' && [...t].some(ch => /[一-龠々]/.test(ch) && target.includes(ch)));
+
+      const rank = list => {
+        const sameKind = shuffle(list.filter(t => wordKind(t) === kind))
+          .sort((x, y) => Math.abs(x.length - target.length) - Math.abs(y.length - target.length));
+        const otherKind = shuffle(list.filter(t => wordKind(t) !== kind));
+        return [...sameKind, ...otherKind];
+      };
+
+      const result = [];
+      const addFrom = list => {
+        for (const t of rank(list.filter(usable))) {
+          if (result.length >= 3) break;
+          if (!result.includes(t)) result.push(t);
+        }
+      };
+      addFrom(strongPool);
+      if (result.length < 3) addFrom(weakPool);
+      if (result.length < 3) addFrom(getGenericPool());
+      return result.length >= 3 ? result : null;
+    }
+
+    function countOccurrences(text, needle) {
+      return needle ? String(text).split(needle).length - 1 : 0;
+    }
+
+    // 空欄にする語句の候補を集める。
+    //  cls  0=数値（細かい数字ほど覚えにくい）／ 1=「」で囲まれた語 ／ 2=その他の語
+    //  weak 空欄にしても答えが1つに決まりにくい語（2文字の一般語、「〜的」、他の語にくっついた一部分、
+    //       1桁の年月日）。自由記述には向かないので、問題数が足りない時に4択で出題する
+    function extractArticleTargetsRanked(sentence, articleTitle) {
+      const titleClean = String(articleTitle || '').replace(/（.*?）|\(.*?\)/g, '').trim();
+      const ranked = [];
+      const seen = new Set();
+      const add = (text, weak, cls) => {
+        if (!text || seen.has(text) || !sentence.includes(text)) return;
+        seen.add(text);
+        ranked.push({ text, weak, cls });
+      };
+
+      if (titleClean && titleClean.length >= 2) add(titleClean, false, 2);
+
+      // 小数（99.86パーセント など）も1つの数値として拾う
+      const numRe = /[0-9０-９]{1,4}(?:[.．][0-9０-９]+)?(?:年|月|日|世紀|代|万人|千人|百人|人|個|種|回|度|メートル|m|km|気圧|パーセント|%)/g;
+      const nums = sentence.match(numRe) || [];
+      const weakNums = [];
+      nums.forEach(n => {
+        if (/^[0-9０-９](?:年|月|日)$/.test(n)) weakNums.push(n);
+        else add(n, false, 0);
+      });
+
+      const quoted = sentence.match(/「([^」]{2,18})」|『([^』]{2,18})』/g) || [];
+      quoted.forEach(q => {
+        const inner = q.slice(1, -1).trim();
+        if (inner.length >= 2) add(inner, false, 1);
+      });
+
+      const stopWords = new Set([
+        'こと', 'もの', 'ため', 'よう', 'など', 'ほか', 'これら', 'それ', 'これ', 'ところ',
+        '現在', '時代', '地域', '中心', '特徴', '代表', '存在', '利用', '影響', '関係',
+        '一般', '基本', '主要', '一部', '全体', '結果', '場合', '以降', '以前', '呼ぶ', '呼ば'
+      ]);
+      // 数値の部分（「15世紀」の「世紀」など）を取り除いてから、単語を探す
+      const rest = sentence.replace(numRe, ' ');
+      const words = rest.match(/[ァ-ヴー・]{2,14}|[A-Za-z][A-Za-z0-9\-]{1,16}|[一-龠々]{2,10}/g) || [];
+      const glued = /[ァ-ヴー一-龠々A-Za-z0-9０-９]/;
+      const weakWords = [];
+      words.forEach(w => {
+        if (stopWords.has(w)) return;
+        const len = [...w.replace(/・/g, '')].length;
+        const isJa = /^[ァ-ヴー・]+$/.test(w) || /^[一-龠々]+$/.test(w);
+        const idx = sentence.indexOf(w);
+        const before = idx > 0 ? sentence[idx - 1] : '';
+        const after = sentence[idx + w.length] || '';
+        if ((isJa && len < 3) || /的$/.test(w) || glued.test(before) || glued.test(after)) weakWords.push(w);
+        else add(w, false, 2);
+      });
+      weakWords.forEach(w => add(w, true, 2));
+      weakNums.forEach(n => add(n, true, 0));
+
+      return ranked;
+    }
+
+    function extractArticleTargets(sentence, articleTitle) {
+      return extractArticleTargetsRanked(sentence, articleTitle).map(r => r.text);
+    }
+
+    // 問題を作る。基本は自由記述。自由記述に向かない語句は、問題数が足りない時に4択にして補う。
+    //  q.type: 'text'（自由記述）／ 'choice'（4択）
+    function buildQuestionsFromArticle(article, count) {
+      // 固定問題を持つ記事（チュートリアル用記事）だけが、その問題を使う
+      if (article && Array.isArray(article.questions) && article.questions.length > 0) {
+        return article.questions.slice(0, count).map(q => {
+          if (Array.isArray(q.distractors)) {
+            return {
+              type: 'choice',
+              prompt: q.prompt,
+              answer: q.answer,
+              options: shuffle([q.answer, ...q.distractors.slice(0, 3)]),
+              sourceText: q.sourceText
+            };
+          }
+          return {
+            type: 'text',
+            prompt: q.prompt,
+            answer: q.answer,
+            accept: q.accept || [],
+            shape: describeAnswerShape(q.answer),
+            firstChar: getFirstChar(q.answer),
+            sourceText: q.sourceText
+          };
+        });
+      }
+
+      const articleTitleClean = String((article && article.title) || 'お題の記事').replace(/（.*?）|\(.*?\)/g, '').trim();
+      const allParagraphs = (article && article.sections ? article.sections : [])
+        .flatMap(s => s.paragraphs || []);
+      const fullText = allParagraphs.join('');
+      const sentences = splitIntoSentences(fullText);
+
+      // 4択の選択肢に使う語。具体的な用語（strong）と、一般的な語（weak）に分けておく
+      const allRanked = sentences.flatMap(sent => extractArticleTargetsRanked(sent, articleTitleClean));
+      const strongPool = [...new Set(allRanked.filter(r => !r.weak).map(r => r.text))]
+        .filter(t => t !== articleTitleClean);
+      const weakPool = [...new Set(allRanked.filter(r => r.weak).map(r => r.text))]
+        .filter(t => t !== articleTitleClean && !strongPool.includes(t));
+
+      const generated = [];
+      const usedTargets = new Set();
+
+      // 周回ごとに、1文あたり最大1問。
+      //   0〜2周目：自由記述（答えが決まりやすい語句）
+      //   3周目   ：4択（自由記述に向かない語句。問題数の確保用）
+      //   4周目   ：残りの語句を自由記述で
+      for (let pass = 0; pass < 5 && generated.length < count; pass++) {
+        const choicePass = pass === 3;
+        for (const sent of shuffle(sentences)) {
+          if (generated.length >= count) break;
+
+          // 細かい数字 → 「」の語 → その他の語の順。同じ種類なら、記事中での登場が少ない語（＝細部）を優先する
+          const candidates = extractArticleTargetsRanked(sent, articleTitleClean)
+            .filter(c =>
+              !usedTargets.has(c.text) &&
+              c.text.length >= 2 &&
+              c.text.length <= 16 &&
+              // 記事名そのもの、または記事名の一部は、問題文の見出しで答えが見えてしまう
+              c.text !== articleTitleClean &&
+              !articleTitleClean.includes(c.text) &&
+              (choicePass ? c.weak : !c.weak)
+            )
+            .sort((a, b) => a.cls - b.cls || countOccurrences(fullText, a.text) - countOccurrences(fullText, b.text));
+
+          for (const c of candidates) {
+            const parts = sent.split(c.text);
+            if (parts.length !== 2) continue; // 文中に1回だけ出てくる語句だけを空欄にする
+            // 「（1868年）」のように答えがかっこの中にある時は、かっこの二重化を避ける
+            const maskedSentence = parts.join('（　　　）').replace(/（（　　　））/g, '（　　　）');
+            // 空欄以外がほとんど残らない文は、手がかりがなく答えられない
+            if (maskedSentence.replace(/[（）　「」『』。、．，\s]/g, '').length < 8) continue;
+
+            if (choicePass) {
+              const distractors = makeNumericDistractors(c.text) || pickDistractors(c.text, maskedSentence, strongPool, weakPool);
+              if (!distractors) continue;
+              usedTargets.add(c.text);
+              generated.push({
+                type: 'choice',
+                prompt: `「${articleTitleClean}」の記事より、次の文の（　　　）に入る正しい語句はどれですか？\n「${maskedSentence}」`,
+                answer: c.text,
+                options: shuffle([c.text, ...distractors.slice(0, 3)]),
+                sourceText: sent
+              });
+            } else {
+              usedTargets.add(c.text);
+              generated.push({
+                type: 'text',
+                prompt: `「${articleTitleClean}」の記事より、次の文の（　　　）に入る語句を答えてください。\n「${maskedSentence}」`,
+                answer: c.text,
+                accept: [],
+                shape: describeAnswerShape(c.text),
+                firstChar: getFirstChar(c.text),
+                sourceText: sent
+              });
+            }
+            break;
+          }
+        }
+      }
+
+      // 記述と4択を混ぜて出す（並びは種で決まるので、同じ種なら全員同じ順）
+      return shuffle(generated);
+    }
+
+    // Wikipediaの本文テキスト（== 見出し == 付き）を sections に変換する
+    function parseWikiExtract(text) {
+      const skipHeadings = new Set(['脚注', '注釈', '出典', '参考文献', '関連項目', '外部リンク', '参照']);
+      const sections = [];
+      let heading = '概要';
+      let buf = [];
+      const flush = () => {
+        const paras = buf.join('\n').split(/\n+/).map(s => s.trim()).filter(s => s.length >= 15);
+        if (paras.length && !skipHeadings.has(heading)) {
+          sections.push({ heading, paragraphs: paras });
+        }
+        buf = [];
+      };
+      String(text || '').split('\n').forEach(line => {
+        const m = line.match(/^=+\s*(.+?)\s*=+$/);
+        if (m) {
+          flush();
+          heading = m[1];
+        } else {
+          buf.push(line);
+        }
+      });
+      flush();
+
+      // 文字数制限で途中切れになった最後の段落を、最後の「。」までに整える
+      const last = sections[sections.length - 1];
+      if (last) {
+        const lp = last.paragraphs[last.paragraphs.length - 1];
+        if (!/[。．！？]$/.test(lp)) {
+          const cut = Math.max(lp.lastIndexOf('。'), lp.lastIndexOf('．'));
+          if (cut >= 0) {
+            last.paragraphs[last.paragraphs.length - 1] = lp.slice(0, cut + 1);
+          } else {
+            last.paragraphs.pop();
+            if (last.paragraphs.length === 0) sections.pop();
+          }
+        }
+      }
+      return sections;
+    }
+
+    async function fetchJsonWithTimeout(url, ms) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), ms);
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) throw new Error('Network error');
+        return await res.json();
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    // ランダム記事を、見出し付きの長めの本文で取得する
+    async function fetchWikiLongOnce(difficulty) {
+      const url = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&origin=*'
+        + '&generator=random&grnnamespace=0&grnlimit=1&prop=extracts&explaintext=1&exchars=1800';
+      const data = await fetchJsonWithTimeout(url, 5000);
+      const pages = data && data.query && data.query.pages ? Object.values(data.query.pages) : [];
+      const page = pages[0];
+      if (!page || !page.title || !page.extract) throw new Error('No page');
+      const sections = parseWikiExtract(page.extract);
+      if (sections.length === 0) throw new Error('Empty page');
+      return { title: page.title, genre: 'Wikipediaランダム', difficulty, sections, src: 'long' };
+    }
+
+    // 上が失敗した時の予備：従来どおり要約だけを取得する
+    async function fetchWikiSummaryOnce(difficulty) {
+      const data = await fetchJsonWithTimeout('https://ja.wikipedia.org/api/rest_v1/page/random/summary', 5000);
+      if (!data.title || !data.extract || data.extract.length < 120) throw new Error('Short summary');
+      const parts = data.extract.split(/(?<=[。．])/).map(s => s.trim()).filter(Boolean);
+      const mid = Math.max(1, Math.ceil(parts.length / 2));
+      const p1 = parts.slice(0, mid).join('');
+      const p2 = parts.slice(mid).join('') || p1;
+      return {
+        title: data.title,
+        genre: 'Wikipediaランダム',
+        difficulty,
+        src: 'summary', // 要約だけの記事は、同じ問題を再現できないので勝負リンクの対象外
+        sections: [
+          { heading: '概要', paragraphs: [p1] },
+          { heading: '詳細', paragraphs: [p2] }
+        ]
+      };
+    }
+
+    function pickFallbackArticle(excludeTitle) {
+      const list = FALLBACK_ARTICLES.filter(a => a.title !== excludeTitle);
+      const src = list.length > 0 ? list : FALLBACK_ARTICLES;
+      return src[Math.floor(Math.random() * src.length)];
+    }
+
+    // 1回分の取得（失敗しても例外は出さず null を返す）
+    async function fetchArticleCandidate(difficulty) {
+      try {
+        return await fetchWikiLongOnce(difficulty);
+      } catch {
+        try {
+          return await fetchWikiSummaryOnce(difficulty);
+        } catch {
+          return null;
+        }
+      }
+    }
+
+    // モードの問題数と最低文字数を満たす記事だけを採用する。
+    // 3件ずつ同時に取得し、満たす記事がなければ最大3ラウンドまで引き直す。
+    async function fetchRandomWikiArticle(modeId, excludeTitle) {
+      const cfg = MODES[modeId] || MODES.easy;
+      const difficulty = modeId === 'easy' ? '★☆☆' : (modeId === 'hard' ? '★★★' : '★★☆');
+      const need = cfg.questionCount;
+      const acceptable = Math.ceil(need * 0.8);
+      const minChars = cfg.minChars || 0;
+
+      let best = null;
+      let bestChars = 0;
+      for (let round = 0; round < 3; round++) {
+        const batch = await Promise.all([0, 1, 2].map(() => fetchArticleCandidate(difficulty)));
+        for (const article of batch) {
+          if (!article || article.title === excludeTitle) continue;
+          const chars = countArticleChars(article);
+          const n = buildQuestionsFromArticle(article, need).length;
+          if (n < acceptable) continue;
+          if (chars >= minChars) return article; // 条件を満たす記事が見つかった
+          if (chars > bestChars) {
+            best = article;
+            bestChars = chars;
+          }
+        }
+      }
+
+      // 最低文字数には届かなかったが、一定以上の長さがある記事は使う
+      if (best && bestChars >= minChars * 0.7) return best;
+      return pickFallbackArticle(excludeTitle);
+    }
+
+    // ==========================================
+    // 4b. Daily Mode（今日の記事）& Score Share
+    // ==========================================
+    // 日替わりの記事は、この一覧から日付で決まります（全員共通）。記事を足したい時はここに追加してください。
+    const DAILY_TITLES = [
+      '織田信長', '豊臣秀吉', '徳川家康', '坂本龍馬', '明治維新', '江戸時代', '平安時代', '縄文時代',
+      '鎌倉幕府', '源氏物語', '枕草子', '万葉集', '浮世絵', '歌舞伎', '茶道', '相撲', '寿司', '日本酒',
+      '味噌', '京都市', '鹿苑寺', '法隆寺', '厳島神社', '姫路城', '東京タワー', '東京スカイツリー',
+      '新幹線', '青函トンネル', '富士山', '琵琶湖', '屋久島', '北海道', '沖縄県', '瀬戸内海', '黒潮',
+      '夏目漱石', '芥川龍之介', '宮沢賢治', '葛飾北斎', '手塚治虫',
+      '太陽', '月', '火星', '木星', '土星', '天の川銀河', 'ブラックホール', '超新星', '光合成', '細胞',
+      '免疫', '恐竜', '地震', '火山', '台風', 'オーロラ', '超伝導', '半導体', '人工知能', 'インターネット',
+      '活版印刷', '時計', '望遠鏡', '顕微鏡', '万有引力', '相対性理論', '量子力学', '周期表', '水素',
+      '酸素', '石油', '発酵', 'サンゴ礁', '南極大陸', 'エベレスト', '太平洋', 'アマゾン川', 'サハラ砂漠',
+      'ナイル川', 'ローマ帝国', '古代ギリシア', 'ルネサンス', '産業革命', 'フランス革命', '万里の長城',
+      'ギザの大ピラミッド', 'ナポレオン・ボナパルト', 'ヴォルフガング・アマデウス・モーツァルト',
+      'ルートヴィヒ・ヴァン・ベートーヴェン', 'レオナルド・ダ・ヴィンチ', 'フィンセント・ファン・ゴッホ',
+      'ピアノ', 'ヴァイオリン', '交響曲', 'オリンピック', 'サッカー', '野球', '将棋', '囲碁', 'チェス'
+    ];
+
+    const DAILY_ARTICLE_KEY = 'sokuseki_pedia_daily_article_v1';
+    const DAILY_RESULT_KEY = 'sokuseki_pedia_daily_result_v1';
+
+    // 日本時間の日付（YYYY-MM-DD）。日替わりの切り替えは日本時間の0時
+    function getTodayKey() {
+      return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    }
+
+    function formatDateKey(key) {
+      return String(key).replace(/-/g, '/');
+    }
+
+    function gcd(a, b) {
+      return b ? gcd(b, a % b) : a;
+    }
+
+    // その日の記事候補。先頭がその日の記事、以降は取得に失敗した時の代わり
+    function getDailyTitleCandidates(dateKey, howMany) {
+      const [y, m, d] = dateKey.split('-').map(Number);
+      const dayNum = Math.floor(Date.UTC(y, m - 1, d) / 86400000);
+      const n = DAILY_TITLES.length;
+      // 一覧の全記事を一巡するまで同じ記事が出ないよう、nと互いに素な歩幅で進める
+      const step = [37, 31, 29, 23, 19, 17, 13, 11, 7, 5, 3, 1].find(s => gcd(s, n) === 1);
+      const start = (dayNum * step) % n;
+      return Array.from({ length: howMany }, (_, i) => DAILY_TITLES[(start + i) % n]);
+    }
+
+    async function fetchWikiByTitle(title, difficulty) {
+      const url = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1'
+        + '&titles=' + encodeURIComponent(title)
+        + '&prop=extracts&explaintext=1&exchars=1800';
+      const data = await fetchJsonWithTimeout(url, 6000);
+      const pages = data && data.query && data.query.pages ? Object.values(data.query.pages) : [];
+      const page = pages[0];
+      if (!page || page.missing !== undefined || !page.title || !page.extract) throw new Error('No page');
+      const sections = parseWikiExtract(page.extract);
+      if (sections.length === 0) throw new Error('Empty page');
+      return { title: page.title, genre: 'Wikipedia', difficulty, sections, src: 'long' };
+    }
+
+    async function fetchDailyArticle(dateKey) {
+      const cfg = MODES.daily;
+      const genre = `今日の記事（${formatDateKey(dateKey)}）`;
+
+      // 同じ日に何度遊んでも、同じ端末では同じ記事（編集で本文が変わっても固定）
+      try {
+        const raw = localStorage.getItem(DAILY_ARTICLE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (cached && cached.date === dateKey && cached.article && cached.article.sections) {
+            return cached.article;
+          }
+        }
+      } catch {}
+
+      const acceptable = Math.ceil(cfg.questionCount * 0.8);
+      for (const title of getDailyTitleCandidates(dateKey, 5)) {
+        try {
+          const article = await fetchWikiByTitle(title, '★★☆');
+          article.genre = genre;
+          if (countArticleChars(article) < cfg.minChars) continue;
+          const n = withSeed(dateKey, () => buildQuestionsFromArticle(article, cfg.questionCount)).length;
+          if (n < acceptable) continue;
+          try {
+            localStorage.setItem(DAILY_ARTICLE_KEY, JSON.stringify({ date: dateKey, article }));
+          } catch {}
+          return article;
+        } catch {
+          // 次の候補へ
+        }
+      }
+
+      // 通信できない時の予備（内蔵記事から日付で決める。保存はしない）
+      const fb = FALLBACK_ARTICLES[hashSeed(dateKey) % FALLBACK_ARTICLES.length];
+      return { ...fb, genre };
+    }
+
+    function loadDailyResult() {
+      try {
+        const raw = localStorage.getItem(DAILY_RESULT_KEY);
+        if (!raw) return null;
+        const r = JSON.parse(raw);
+        return r && r.date === getTodayKey() ? r : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveDailyResult(dateKey, score, correct, total) {
+      const prev = loadDailyResult();
+      if (prev && prev.date === dateKey && prev.score >= score) return;
+      try {
+        localStorage.setItem(DAILY_RESULT_KEY, JSON.stringify({ date: dateKey, score, correct, total }));
+      } catch {}
+    }
+
+    function dailyStatusText() {
+      const res = loadDailyResult();
+      const today = formatDateKey(getTodayKey());
+      return res ? `${today} ・ 本日のベスト ${res.score} pt` : `${today} ・ 本日は未プレイ`;
+    }
+
+    // ---- スコアの共有 ----
+    // 共有する文章はURLだけ（結果は画像で伝える）。ファイルを直接開いている時はURLなし
+    function getShareUrl() {
+      if (!/^https?:$/.test(location.protocol)) return '';
+      return location.origin + location.pathname.replace(/index\.html$/, '');
+    }
+
+    function newSeed() {
+      return Math.random().toString(36).slice(2, 8).padEnd(6, '0');
+    }
+
+    // ---- 復習：Wikipediaの記事ページへのリンク ----
+    // 検索経由にしているので、タイトルがぴったり一致すれば記事へ直接飛び、なければ検索結果が開く
+    function getWikipediaUrl(article) {
+      const title = String((article && article.title) || '').replace(/（練習用記事）/g, '').trim();
+      return 'https://ja.wikipedia.org/w/index.php?search=' + encodeURIComponent(title);
+    }
+
+    // ---- 友達対決（勝負リンク）----
+    const CHALLENGE_MODES = ['easy', 'normal', 'hard'];
+
+    // 同じ記事・同じ問題を再現できる時だけ、勝負リンクを作れる（公開ページで開いている時のみ）
+    function isChallengeable() {
+      return CHALLENGE_MODES.includes(state.modeId)
+        && !!getShareUrl()
+        && !!state.article
+        && state.article.src !== 'summary'
+        && !!state.seed;
+    }
+
+    function getChallengeUrl() {
+      if (!isChallengeable()) return '';
+      const params = new URLSearchParams({
+        vs: '1',
+        m: state.modeId,
+        k: state.seed,
+        t: state.article.title,
+        s: String(state.score),
+        c: String(state.answers.filter(a => a.isCorrect).length),
+        n: String(state.questions.length)
+      });
+      return getShareUrl() + '#' + params.toString();
+    }
+
+    function parseChallengeFromHash() {
+      try {
+        const p = new URLSearchParams(location.hash.replace(/^#/, ''));
+        if (p.get('vs') !== '1') return null;
+        const modeId = p.get('m');
+        const seed = p.get('k');
+        const title = p.get('t');
+        if (!CHALLENGE_MODES.includes(modeId)) return null;
+        if (!seed || !/^[0-9a-z]{1,16}$/i.test(seed)) return null;
+        if (!title || title.length > 120) return null;
+        const num = (key, max) => {
+          const v = p.get(key);
+          if (v === null || !/^\d{1,5}$/.test(v)) return null;
+          const n = parseInt(v, 10);
+          return n <= max ? n : null;
+        };
+        return { modeId, seed, title, score: num('s', 99999), correct: num('c', 99), total: num('n', 99) };
+      } catch {
+        return null;
+      }
+    }
+
+    async function fetchChallengeArticle(challenge) {
+      const builtin = FALLBACK_ARTICLES.find(a => a.title === challenge.title);
+      if (builtin) return builtin;
+      const difficulty = challenge.modeId === 'easy' ? '★☆☆' : (challenge.modeId === 'hard' ? '★★★' : '★★☆');
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const article = await fetchWikiByTitle(challenge.title, difficulty);
+          article.genre = 'Wikipediaランダム';
+          return article;
+        } catch {
+          // もう一度試す
+        }
+      }
+      return null;
+    }
+
+    function clearChallengeHash() {
+      try {
+        history.replaceState(null, '', location.pathname + location.search);
+      } catch {}
+    }
+
+    async function acceptChallenge() {
+      const c = state.challenge;
+      if (!c) return;
+      clearChallengeHash();
+      state.challenge = null;
+      await selectMode(c.modeId, false, c);
+    }
+
+    function dismissChallenge() {
+      playTap();
+      clearChallengeHash();
+      state.challenge = null;
+      state.challengeError = false;
+      render();
+    }
+
+    function buildChallengeBannerHtml() {
+      const c = state.challenge;
+      if (!c) return '';
+      const mode = MODES[c.modeId];
+      const scoreLine = c.score !== null
+        ? `相手のスコア：<strong>${c.score} pt</strong>${c.correct !== null && c.total !== null ? `（正解 ${c.correct}/${c.total}）` : ''}`
+        : '同じ記事・同じ問題で勝負できます';
+      return `
+        <div class="challenge-banner anim-pop-3">
+          <div style="font-size:13px;font-weight:900;color:#141414;">⚔ 友達からの挑戦状</div>
+          <div style="margin-top:6px;font-size:13.5px;line-height:1.7;color:#333333;">${escapeHtml(mode.name)}モード ／ ${scoreLine}</div>
+          ${state.challengeError ? '<div style="margin-top:6px;font-size:12.5px;color:#c0392b;">記事を取得できませんでした。通信を確認して、もう一度お試しください。</div>' : ''}
+          <div style="margin-top:12px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn-primary whitespace-nowrap" style="padding:10px 18px;font-size:14px;" onclick="acceptChallenge()">この問題に挑戦する</button>
+            <button type="button" class="btn-ghost-sm whitespace-nowrap" onclick="dismissChallenge()">閉じる</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // 勝負リンクから挑戦した時の、相手との比較
+    function buildVersusBannerHtml() {
+      const ch = state.activeChallenge;
+      if (!ch || ch.score === null) return '';
+      const mine = state.score;
+      const theirs = ch.score;
+      let headline = '🤝 引き分け！';
+      if (mine > theirs) headline = '🎉 あなたの勝ち！';
+      if (mine < theirs) headline = '😤 惜しい、相手の勝ち…';
+      return `
+        <div class="vs-banner">
+          <div style="font-size:16px;font-weight:900;color:#141414;">${headline}</div>
+          <div style="margin-top:4px;font-size:13px;color:#555555;">あなた ${mine} pt ／ 相手 ${theirs} pt</div>
+          <div style="margin-top:4px;font-size:12px;color:#777777;">下の「勝負リンク」で、あなたのスコアを相手に送り返せます。</div>
+        </div>
+      `;
+    }
+
+    function buildShareCardHtml() {
+      const canCopyImage = !!(navigator.clipboard && window.ClipboardItem);
+      const challengeUrl = getChallengeUrl();
+      const plainUrl = getShareUrl();
+      const btn = 'style="padding:9px 16px;font-size:13px;"';
+      let linkBtn = '';
+      if (challengeUrl) {
+        linkBtn = `<button type="button" class="btn-secondary whitespace-nowrap" ${btn} onclick="copyShareLink()">⚔ 勝負リンクをコピー</button>`;
+      } else if (plainUrl) {
+        linkBtn = `<button type="button" class="btn-secondary whitespace-nowrap" ${btn} onclick="copyShareLink()">🔗 リンクをコピー</button>`;
+      }
+      return `
+        <div class="share-card">
+          <div style="font-size:13px;font-weight:800;color:#141414;margin-bottom:10px;">📤 結果をシェア</div>
+          <img id="sharePreview" class="share-preview" alt="スコア画像のプレビュー" style="display:none;" />
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <button type="button" class="btn-primary whitespace-nowrap" ${btn} onclick="shareResultImage()">🖼 画像で共有</button>
+            <button type="button" class="btn-secondary whitespace-nowrap" ${btn} onclick="saveShareImage()">💾 画像を保存</button>
+            ${canCopyImage ? `<button type="button" class="btn-secondary whitespace-nowrap" ${btn} onclick="copyShareImage()">📋 画像をコピー</button>` : ''}
+            ${linkBtn}
+          </div>
+          ${challengeUrl ? '<div style="margin-top:10px;font-size:12px;line-height:1.6;color:#666666;">画像と一緒に送るリンクは「勝負リンク」です。開いた相手は、あなたと同じ記事・同じ問題に挑戦できます。</div>' : ''}
+          <div id="shareStatus" style="margin-top:8px;min-height:18px;font-size:12px;color:#666666;"></div>
+        </div>
+      `;
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch {}
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch {
+        return false;
+      }
+    }
+
+    async function copyShareLink() {
+      playTap();
+      const url = getChallengeUrl() || getShareUrl();
+      if (!url) return;
+      const ok = await copyToClipboard(url);
+      setShareStatus(ok ? 'リンクをコピーしました ✓' : 'コピーできませんでした');
+    }
+
+    function setShareStatus(msg) {
+      const el = document.getElementById('shareStatus');
+      if (el) el.textContent = msg;
+    }
+
+    // ---- スコアの画像（Canvasで描画）----
+    function roundRectPath(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function fitText(ctx, text, maxWidth) {
+      if (ctx.measureText(text).width <= maxWidth) return text;
+      let t = text;
+      while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) t = t.slice(0, -1);
+      return t + '…';
+    }
+
+    function getShareImageData() {
+      const cfg = MODES[state.modeId];
+      const total = state.questions.length;
+      const correct = state.answers.filter(a => a.isCorrect).length;
+      const isDaily = state.modeId === 'daily';
+      return {
+        modeLabel: isDaily ? `今日の記事 ${formatDateKey(state.dailyKey || getTodayKey())}` : cfg.name,
+        // 今日の記事は全員同じ記事なので、記事名は伏せる
+        articleLine: !isDaily && state.article && state.article.title ? `記事：${state.article.title}` : '',
+        score: state.score,
+        correct,
+        total,
+        rate: total > 0 ? Math.round((correct / total) * 100) : 0,
+        results: state.questions.map((q, i) => {
+          const a = state.answers[i];
+          if (!a || a.isSkipped) return 'skip';
+          return a.isCorrect ? 'ok' : 'ng';
+        }),
+        confs: state.questions.map((q, i) => !!(state.answers[i] && state.answers[i].confident)),
+        footer: getShareUrl() || '#SkimPediA'
+      };
+    }
+
+    async function drawShareImage() {
+      const d = getShareImageData();
+      const SIZE = 1080;
+      const canvas = document.createElement('canvas');
+      canvas.width = SIZE;
+      canvas.height = SIZE;
+      const ctx = canvas.getContext('2d');
+      const DISPLAY = '"M PLUS Rounded 1c", "Noto Sans JP", sans-serif';
+      const BODY = '"Noto Sans JP", sans-serif';
+
+      // Webフォントの読み込みを待つ（使う文字だけ読み込む。待ちすぎないよう1.5秒で打ち切り）
+      if (document.fonts && document.fonts.load) {
+        const sample = `SkimPediA WIKIPEDIA MEMORY QUIZ 0123456789 pt 正解 不正解 スキップ 問 正答率 % ${d.modeLabel} ${d.articleLine} ${d.footer}`;
+        try {
+          await Promise.race([
+            Promise.all([
+              document.fonts.load('900 80px "M PLUS Rounded 1c"', sample),
+              document.fonts.load('800 40px "Noto Sans JP"', sample),
+              document.fonts.load('700 30px "Noto Sans JP"', sample)
+            ]),
+            new Promise(resolve => setTimeout(resolve, 1500))
+          ]);
+        } catch {}
+      }
+
+      // 背景とカード
+      ctx.fillStyle = '#f5f5f5';
+      ctx.fillRect(0, 0, SIZE, SIZE);
+      roundRectPath(ctx, 60, 60, 960, 960, 56);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#e2e2e2';
+      ctx.stroke();
+
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+
+      // ロゴ
+      ctx.fillStyle = '#8c8c8c';
+      ctx.font = `700 24px ${BODY}`;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '3px';
+      ctx.fillText('WIKIPEDIA MEMORY QUIZ', 120, 140);
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+      ctx.fillStyle = '#141414';
+      ctx.font = `900 72px ${DISPLAY}`;
+      ctx.fillText('SkimPediA', 120, 222);
+
+      // モード名のピル
+      ctx.font = `800 34px ${BODY}`;
+      const pillText = fitText(ctx, d.modeLabel, 700);
+      const pillW = ctx.measureText(pillText).width + 56;
+      roundRectPath(ctx, 120, 262, pillW, 64, 32);
+      ctx.fillStyle = '#141414';
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pillText, 148, 295);
+      ctx.textBaseline = 'alphabetic';
+
+      // 記事名
+      if (d.articleLine) {
+        ctx.fillStyle = '#555555';
+        ctx.font = `700 34px ${BODY}`;
+        ctx.fillText(fitText(ctx, d.articleLine, 840), 120, 392);
+      }
+
+      // スコア
+      const numText = String(d.score);
+      ctx.font = `900 260px ${DISPLAY}`;
+      const numW = ctx.measureText(numText).width;
+      ctx.font = `900 90px ${DISPLAY}`;
+      const ptW = ctx.measureText('pt').width;
+      const scoreX = 540 - (numW + 20 + ptW) / 2;
+      ctx.fillStyle = '#141414';
+      ctx.font = `900 260px ${DISPLAY}`;
+      ctx.fillText(numText, scoreX, 650);
+      ctx.font = `900 90px ${DISPLAY}`;
+      ctx.fillText('pt', scoreX + numW + 20, 650);
+
+      // 正解数・正答率
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#141414';
+      ctx.font = `800 44px ${BODY}`;
+      ctx.fillText(`正解 ${d.correct} / ${d.total} 問　正答率 ${d.rate}%`, 540, 748);
+
+      // 問題ごとの結果
+      const COLORS = { ok: '#4fae62', ng: '#e0575b', skip: '#d4d4d4' };
+      const n = d.results.length;
+      if (n > 0) {
+        const gap = 14;
+        const size = Math.min(72, Math.floor((840 - gap * (n - 1)) / n));
+        const totalW = n * size + gap * (n - 1);
+        const x0 = 540 - totalW / 2;
+        d.results.forEach((r, i) => {
+          const bx = x0 + i * (size + gap);
+          roundRectPath(ctx, bx, 800, size, size, Math.min(14, size / 4));
+          ctx.fillStyle = COLORS[r];
+          ctx.fill();
+          if (d.confs[i]) {
+            // 自信ありで答えた問題には星を入れる
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `900 ${Math.round(size * 0.5)}px ${BODY}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('★', bx + size / 2, 800 + size / 2 + 2);
+            ctx.textBaseline = 'alphabetic';
+          }
+        });
+      }
+
+      // 凡例
+      ctx.textAlign = 'left';
+      ctx.font = `700 24px ${BODY}`;
+      const legend = [['ok', '正解'], ['ng', '不正解'], ['skip', 'スキップ']];
+      if (d.confs.some(Boolean)) legend.push(['conf', '自信あり']);
+      const boxS = 22, boxGap = 10, itemGap = 36;
+      const widths = legend.map(([, label]) => boxS + boxGap + ctx.measureText(label).width);
+      let lx = 540 - (widths.reduce((a, b) => a + b, 0) + itemGap * (legend.length - 1)) / 2;
+      legend.forEach(([key, label], i) => {
+        roundRectPath(ctx, lx, 912, boxS, boxS, 6);
+        ctx.fillStyle = key === 'conf' ? '#8c8c8c' : COLORS[key];
+        ctx.fill();
+        if (key === 'conf') {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `900 16px ${BODY}`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('★', lx + boxS / 2, 912 + boxS / 2 + 1);
+          ctx.textBaseline = 'alphabetic';
+          ctx.textAlign = 'left';
+          ctx.font = `700 24px ${BODY}`;
+        }
+        ctx.fillStyle = '#666666';
+        ctx.fillText(label, lx + boxS + boxGap, 930);
+        lx += widths[i] + itemGap;
+      });
+
+      // フッター
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#8c8c8c';
+      ctx.font = `500 26px ${BODY}`;
+      ctx.fillText(fitText(ctx, d.footer, 840), 540, 988);
+
+      return new Promise(resolve => canvas.toBlob(b => resolve(b), 'image/png'));
+    }
+
+    let sharePreviewUrl = null;
+    async function updateSharePreview() {
+      state.shareBlob = null;
+      try {
+        const blob = await drawShareImage();
+        if (!blob || state.screen !== 'result') return;
+        state.shareBlob = blob; // クリック時にすぐ共有できるよう、先に作っておく
+        if (sharePreviewUrl) URL.revokeObjectURL(sharePreviewUrl);
+        sharePreviewUrl = URL.createObjectURL(blob);
+        const img = document.getElementById('sharePreview');
+        if (img) {
+          img.src = sharePreviewUrl;
+          img.style.display = 'block';
+        }
+      } catch {}
+    }
+
+    async function getShareImageBlob() {
+      return state.shareBlob || (await drawShareImage());
+    }
+
+    function triggerDownload(blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'skimpedia-score.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function saveShareImage() {
+      playTap();
+      try {
+        const blob = await getShareImageBlob();
+        if (!blob) throw new Error('no blob');
+        triggerDownload(blob);
+        setShareStatus('画像を保存しました');
+      } catch {
+        setShareStatus('画像を作れませんでした');
+      }
+    }
+
+    async function copyShareImage() {
+      playTap();
+      try {
+        const blob = await getShareImageBlob();
+        if (!blob) throw new Error('no blob');
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        setShareStatus('画像をコピーしました ✓');
+      } catch {
+        setShareStatus('コピーできませんでした。「画像を保存」を使ってください');
+      }
+    }
+
+    // 画像つきで共有。共有メニューが使えない環境では、画像を保存する
+    async function shareResultImage() {
+      playTap();
+      let blob = null;
+      try {
+        blob = await getShareImageBlob();
+      } catch {}
+      if (!blob) {
+        setShareStatus('画像を作れませんでした');
+        return;
+      }
+      const file = new File([blob], 'skimpedia-score.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          const url = getChallengeUrl() || getShareUrl();
+          await navigator.share(url ? { files: [file], text: url } : { files: [file] });
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') return;
+        }
+      }
+      triggerDownload(blob);
+      setShareStatus(getShareUrl() ? '画像を保存しました。リンクもコピーして、一緒に送ってください' : '画像を保存しました。SNSの投稿に添付してください');
+    }
+
+    // ==========================================
+    // 4c. 自信度ベット / ハードモード（流れる記事）
+    // ==========================================
+    // 配点：なんとなく＝正解100（ヒント使用時は50）・外れ0 ／ 自信あり＝正解200・外れ−100（合計は0未満にならない）
+    function calcPoints(isCorrect, confident, hintUsed) {
+      if (confident) return isCorrect ? 200 : -100;
+      return isCorrect ? (hintUsed ? 50 : 100) : 0;
+    }
+
+    function formatPoints(n) {
+      if (n < 0) return `−${Math.abs(n)}`;
+      return n > 0 ? `+${n}` : '0';
+    }
+
+    function pointsPillText() {
+      if (state.confident) return '🔥 自信あり：正解 +200 pt ／ 外れ −100 pt';
+      return state.hintUsedForCurrent ? '配点：50 pt（ヒント使用中）' : '配点：100 pt';
+    }
+
+    // 画面全体を描き直さず、ボタンの見た目だけ更新する
+    function updateBetDOM() {
+      const normalBtn = document.getElementById('betNormalBtn');
+      const hotBtn = document.getElementById('betHotBtn');
+      const hintBtn = document.getElementById('hintBtn');
+      const pill = document.getElementById('pointsPill');
+      if (normalBtn) normalBtn.classList.toggle('active', !state.confident);
+      if (hotBtn) {
+        hotBtn.classList.toggle('active', state.confident);
+        hotBtn.disabled = state.hintUsedForCurrent;
+      }
+      if (hintBtn) hintBtn.disabled = state.hintUsedForCurrent || state.confident;
+      if (pill) pill.textContent = pointsPillText();
+    }
+
+    function setConfidence(on) {
+      if (state.screen !== 'quiz') return;
+      // ヒントを使った問題では自信ありにできない
+      state.confident = !!on && !state.hintUsedForCurrent;
+      playTap();
+      updateBetDOM();
+    }
+
+    function buildBetRowHtml() {
+      return `
+        <div class="bet-row select-none">
+          <span class="bet-label whitespace-nowrap">自信度：</span>
+          <button type="button" id="betNormalBtn" class="bet-btn ${state.confident ? '' : 'active'}" onclick="setConfidence(false)">
+            🤔 なんとなく
+            <small>正解 +100 ／ 外れ 0</small>
+          </button>
+          <button type="button" id="betHotBtn" class="bet-btn hot ${state.confident ? 'active' : ''}" ${state.hintUsedForCurrent ? 'disabled' : ''} onclick="setConfidence(true)">
+            🔥 自信あり
+            <small>正解 +200 ／ 外れ −100</small>
+          </button>
+        </div>
+      `;
+    }
+
+    // ---- ハードモード：記事が時間とともに消えていく ----
+    const FLOW_GRACE_SEC = 12; // 最初の文が消え始めるまでの猶予
+
+    function getFlowPlan(article) {
+      const chars = countArticleChars(article);
+      // 全文が消えきるまでの秒数（文字数に応じて45〜100秒）
+      const total = Math.min(100, Math.max(45, Math.round(chars / 18)));
+      return { grace: FLOW_GRACE_SEC, total };
+    }
+
+    function splitForFlow(paragraph) {
+      return String(paragraph || '').split(/(?<=[。．！？])/).filter(s => s.length > 0);
+    }
+
+    function buildFlowArticleHtml(art) {
+      let idx = 0;
+      return art.sections.map(sec => `
+        <h3>${escapeHtml(sec.heading)}</h3>
+        ${(sec.paragraphs || []).map(p => `<p>${splitForFlow(p).map(s => `<span class="flow-sent" data-i="${idx++}">${escapeHtml(s)}</span>`).join('')}</p>`).join('')}
+      `).join('');
+    }
+
+    let flowTickerId = null;
+
+    function stopFlowTicker() {
+      if (flowTickerId) {
+        clearInterval(flowTickerId);
+        flowTickerId = null;
+      }
+    }
+
+    // 経過時間から、各文を「消えかけ」「消えた」にする（画面を描き直しても経過時間は引き継がれる）
+    function tickFlow() {
+      if (state.screen !== 'memorize' || !MODES[state.modeId] || !MODES[state.modeId].flow) {
+        stopFlowTicker();
+        return;
+      }
+      const els = document.querySelectorAll('#articleBody .flow-sent');
+      if (els.length === 0) return;
+      const plan = getFlowPlan(state.article);
+      const elapsed = (Date.now() - state.flowStartMs) / 1000;
+      const total = els.length;
+      let goneCount = 0;
+      els.forEach((el, i) => {
+        const vanishAt = plan.grace + ((i + 1) / total) * plan.total;
+        const gone = elapsed >= vanishAt;
+        if (gone) goneCount += 1;
+        el.classList.toggle('gone', gone);
+        el.classList.toggle('fading', !gone && elapsed >= vanishAt - 2);
+        // 消え終わったら詰める（読んでいる位置が下に押し下げられないように）
+        el.classList.toggle('collapsed', elapsed >= vanishAt + 1.5);
+      });
+      document.querySelectorAll('#articleBody p').forEach(p => {
+        p.classList.toggle('all-gone', !p.querySelector('.flow-sent:not(.collapsed)'));
+      });
+      const remainRate = Math.round((1 - goneCount / total) * 100);
+      const fill = document.getElementById('flowBarFill');
+      if (fill) fill.style.width = `${remainRate}%`;
+      const label = document.getElementById('flowLabel');
+      if (label) label.textContent = `${remainRate}%`;
+    }
+
+    function startFlowTicker() {
+      stopFlowTicker();
+      tickFlow();
+      flowTickerId = setInterval(tickFlow, 250);
+    }
+
+    // ==========================================
+    // 5. Game Flow Actions
+    // ==========================================
+    function goToStart() {
+      playTap();
+      stopTimer();
+      state.loadToken += 1;
+      state.screen = 'start';
+      state.scores = loadScores();
+      render();
+    }
+
+    function goToModeSelect() {
+      playTap();
+      stopTimer();
+      state.loadToken += 1;
+      state.screen = 'mode';
+      render();
+    }
+
+    async function selectMode(modeId, isReroll = false, challenge = null) {
+      if (isReroll) {
+        // 今日の記事と、勝負リンクの挑戦中は引き直し不可（全員・相手と同じ記事のため）
+        if (state.rerollUsed || state.modeId === 'daily' || state.activeChallenge) return;
+        playPageFlip();
+        state.rerollUsed = true;
+      } else {
+        playTap();
+        state.modeId = modeId;
+        state.rerollUsed = false;
+        state.memoText = '';
+        state.memoOpen = false;
+        state.timeLeftSec = MODES[modeId].timeLimitSec;
+        state.activeChallenge = challenge;
+        state.challengeError = false;
+      }
+      state.seed = challenge ? challenge.seed : newSeed();
+
+      const myToken = ++state.loadToken;
+      state.screen = 'loading';
+      render();
+
+      let article;
+      if (state.modeId === 'tutorial' && !isReroll) {
+        article = TUTORIAL_ARTICLE;
+      } else if (state.modeId === 'daily') {
+        state.dailyKey = getTodayKey();
+        article = await fetchDailyArticle(state.dailyKey);
+      } else if (challenge) {
+        article = await fetchChallengeArticle(challenge);
+        if (myToken !== state.loadToken) return;
+        if (!article) {
+          // 記事を取れなかったら、挑戦状を残してタイトルへ戻す
+          state.activeChallenge = null;
+          state.challenge = challenge;
+          state.challengeError = true;
+          state.screen = 'start';
+          render();
+          return;
+        }
+      } else {
+        article = await fetchRandomWikiArticle(state.modeId, state.article && state.article.title);
+      }
+      // 取得中にタイトル等へ戻った場合は、遅れて届いた記事を使わない
+      if (myToken !== state.loadToken) return;
+      state.article = article;
+      state.flowStartMs = Date.now();
+
+      state.screen = 'memorize';
+      render();
+      startTimer();
+    }
+
+    function toggleMemoDrawer() {
+      playTap();
+      state.memoOpen = !state.memoOpen;
+      render();
+    }
+
+    function setMarkerColor(color) {
+      playTap();
+      state.activeMarkerColor = color;
+      render();
+    }
+
+    function applySelectionHighlight() {
+      const container = document.getElementById('articleBody');
+      if (!container) return;
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+
+      const range = sel.getRangeAt(0);
+      if (!container.contains(range.commonAncestorContainer)) return;
+
+      const selectedText = sel.toString().trim();
+      if (!selectedText) return;
+
+      try {
+        const mark = document.createElement('mark');
+        mark.className = `user-mark ${state.activeMarkerColor}`;
+        mark.title = 'クリックするとこのマーカーを消せます';
+        mark.onclick = function (e) {
+          e.stopPropagation();
+          playTap();
+          const parent = mark.parentNode;
+          while (mark.firstChild) {
+            parent.insertBefore(mark.firstChild, mark);
+          }
+          parent.removeChild(mark);
+        };
+        range.surroundContents(mark);
+        sel.removeAllRanges();
+        playTap();
+      } catch {
+        // Ignore cross-node complex selection errors safely
+      }
+    }
+
+    function clearAllMarkers() {
+      playTap();
+      const container = document.getElementById('articleBody');
+      if (!container) return;
+      const marks = container.querySelectorAll('mark.user-mark');
+      marks.forEach(mark => {
+        const parent = mark.parentNode;
+        while (mark.firstChild) {
+          parent.insertBefore(mark.firstChild, mark);
+        }
+        parent.removeChild(mark);
+      });
+    }
+
+    function startQuizPhase() {
+      playQuizStartChime();
+      const modeCfg = MODES[state.modeId];
+      const build = () => buildQuestionsFromArticle(state.article, modeCfg.questionCount);
+      const seedStr = state.modeId === 'daily' ? (state.dailyKey || getTodayKey()) : state.seed;
+      state.questions = seedStr ? withSeed(seedStr, build) : build();
+      if (state.questions.length === 0) {
+        state.article = pickFallbackArticle(state.article && state.article.title);
+        state.questions = build();
+      }
+      state.qIndex = 0;
+      state.draftAnswer = '';
+      state.eliminatedChoices = [];
+      state.hintUsedForCurrent = false;
+      state.confident = false;
+      state.answers = [];
+      state.score = 0;
+      state.memoOpen = false;
+      state.screen = 'quiz';
+      render();
+    }
+
+    // ヒント：自由記述なら答えの頭文字、4択なら選択肢を2つ消す。どちらも、その問題の配点が半分（50pt）になる
+    function useHint() {
+      const q = state.questions[state.qIndex];
+      if (!q || state.hintUsedForCurrent || state.confident) return;
+      if (q.type === 'choice') {
+        const wrong = q.options.filter(opt => opt !== q.answer && !state.eliminatedChoices.includes(opt));
+        state.eliminatedChoices = [...new Set([...state.eliminatedChoices, ...shuffle(wrong).slice(0, 2)])];
+      }
+      state.hintUsedForCurrent = true;
+      playTap();
+      render(); // 入力中の文字は state.draftAnswer から復元される
+    }
+
+    function submitAnswer(raw) {
+      const q = state.questions[state.qIndex];
+      if (!q) return false;
+      const text = String(raw == null ? '' : raw).trim();
+      if (!text) return false;
+      playWoodBlock();
+
+      const isCorrect = checkAnswer(q, text);
+      const confident = state.confident && !state.hintUsedForCurrent;
+      const pts = calcPoints(isCorrect, confident, state.hintUsedForCurrent);
+      state.score = Math.max(0, state.score + pts); // 合計は0未満にならない
+      state.answers.push({
+        question: q,
+        chosen: text,
+        isCorrect,
+        isSkipped: false,
+        pointsEarned: pts,
+        confident
+      });
+
+      advanceOrFinish();
+      return true;
+    }
+
+    function submitAnswerFromInput() {
+      const input = document.getElementById('answerInput');
+      const text = input ? input.value : state.draftAnswer;
+      if (!String(text).trim()) {
+        const note = document.getElementById('answerNote');
+        if (note) note.textContent = '答えを入力してください（わからない時は「スキップ」）';
+        if (input) input.focus();
+        return;
+      }
+      submitAnswer(text);
+    }
+
+    function onAnswerInput(el) {
+      state.draftAnswer = el.value;
+      const note = document.getElementById('answerNote');
+      if (note) note.textContent = '';
+    }
+
+    // Enterで回答。日本語入力の変換を確定するEnterでは回答しない
+    function onAnswerKeyDown(e) {
+      if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
+        e.preventDefault();
+        submitAnswerFromInput();
+      }
+    }
+
+    function skipCurrentQuestion() {
+      const q = state.questions[state.qIndex];
+      if (!q) return;
+      playWoodBlock();
+
+      state.answers.push({
+        question: q,
+        chosen: null,
+        isCorrect: false,
+        isSkipped: true,
+        pointsEarned: 0,
+        confident: false
+      });
+
+      advanceOrFinish();
+    }
+
+    function advanceOrFinish() {
+      if (state.qIndex + 1 < state.questions.length) {
+        state.qIndex += 1;
+        state.draftAnswer = '';
+        state.eliminatedChoices = [];
+        state.hintUsedForCurrent = false;
+        state.confident = false;
+        render(true);
+      } else {
+        finishGame();
+      }
+    }
+
+    function finishGame() {
+      stopTimer();
+      playResultArpeggio();
+      state.scores = saveScore(state.score);
+      if (state.modeId === 'daily') {
+        saveDailyResult(
+          state.dailyKey || getTodayKey(),
+          state.score,
+          state.answers.filter(a => a.isCorrect).length,
+          state.questions.length
+        );
+      }
+      state.showArticleReview = false;
+      state.screen = 'result';
+      render();
+    }
+
+    // ==========================================
+    // 6. Keyboard Shortcuts
+    // ==========================================
+    document.addEventListener('keydown', (e) => {
+      const active = document.activeElement;
+      const typing = !!active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT');
+
+      // 入力中の文字（mなど）で音が切り替わらないようにする
+      if ((e.key === 'm' || e.key === 'M') && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (typing) return;
+        toggleMute();
+        return;
+      }
+
+      if (state.screen === 'memorize') {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          startQuizPhase();
+        }
+      } else if (state.screen === 'quiz') {
+        const cur = state.questions[state.qIndex];
+        // 回答欄に文字を打てるよう、ショートカットは Alt（Macは Option）つきにしている
+        if (e.altKey && e.code === 'KeyC') {
+          e.preventDefault();
+          setConfidence(!state.confident);
+        } else if (e.altKey && e.code === 'KeyH') {
+          e.preventDefault();
+          useHint();
+        } else if (cur && cur.type === 'choice' && !typing && /^[1-4]$/.test(e.key)) {
+          // 4択の問題は、数字キーで選べる
+          const opt = cur.options[Number(e.key) - 1];
+          if (opt && !state.eliminatedChoices.includes(opt)) submitAnswer(opt);
+        }
+      }
+    });
+
+    // ==========================================
+    // 7. Rendering
+    // ==========================================
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function escapeRegExp(str) {
+      return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // 同じ文から複数問出ている場合は1つにまとめる
+    function buildSourceGroups(questions) {
+      const map = new Map();
+      (questions || []).forEach((q, i) => {
+        if (!q.sourceText) return;
+        const key = String(q.sourceText).replace(/\s+/g, ' ').trim();
+        if (!key) return;
+        if (!map.has(key)) map.set(key, { text: key, nums: [], answers: [] });
+        const g = map.get(key);
+        g.nums.push(i + 1);
+        g.answers.push(q.answer);
+      });
+      return [...map.values()];
+    }
+
+    function renderSourceParagraph(paragraph, groups, foundGroups) {
+      const text = String(paragraph || '').replace(/\s+/g, ' ');
+      const ranges = [];
+      groups.forEach(g => {
+        const idx = text.indexOf(g.text);
+        if (idx >= 0) ranges.push({ start: idx, end: idx + g.text.length, g });
+      });
+      ranges.sort((a, b) => a.start - b.start);
+
+      let html = '';
+      let cursor = 0;
+      ranges.forEach(r => {
+        if (r.start < cursor) return; // 重なる場合は後ろを無視
+        html += escapeHtml(text.slice(cursor, r.start));
+
+        const raw = text.slice(r.start, r.end);
+        const answers = [...new Set(r.g.answers)].filter(Boolean).sort((a, b) => b.length - a.length);
+        let inner;
+        if (answers.length > 0) {
+          const re = new RegExp('(' + answers.map(escapeRegExp).join('|') + ')');
+          inner = raw.split(re)
+            .map((part, i) => (i % 2 === 1 ? `<strong class="src-answer">${escapeHtml(part)}</strong>` : escapeHtml(part)))
+            .join('');
+        } else {
+          inner = escapeHtml(raw);
+        }
+        const badges = r.g.nums.map(n => `<span class="src-badge">第${n}問</span>`).join('');
+        html += `<mark class="src-mark" data-qs="${r.g.nums.join(' ')}">${inner}</mark>${badges}`;
+
+        foundGroups.add(r.g);
+        cursor = r.end;
+      });
+      html += escapeHtml(text.slice(cursor));
+      return html;
+    }
+
+    function buildArticleReviewHtml(article, questions) {
+      if (!article || !article.sections) return '';
+      const groups = buildSourceGroups(questions);
+      const found = new Set();
+
+      const body = article.sections.map(sec => `
+        <h3>${escapeHtml(sec.heading)}</h3>
+        ${(sec.paragraphs || []).map(p => `<p>${renderSourceParagraph(p, groups, found)}</p>`).join('')}
+      `).join('');
+
+      const missing = groups.filter(g => !found.has(g));
+      const missingHtml = missing.length === 0 ? '' : `
+        <div style="margin-top:14px;padding:10px 12px;border-radius:12px;background:#fafafa;border:1px solid #e4e4e4;font-size:12.5px;line-height:1.7;color:#555555;">
+          本文中で位置を特定できなかった出題箇所：
+          ${missing.map(g => `<div>${g.nums.map(n => `第${n}問`).join('・')}：「${escapeHtml(g.text)}」</div>`).join('')}
+        </div>`;
+
+      return `
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+          <span style="font-size:13px;font-weight:800;color:#141414;">📖 元の記事：${escapeHtml(article.title)}</span>
+          <span style="font-size:12px;color:#666666;">
+            <mark class="src-mark">黄色</mark>＝出題された文　<span class="src-answer">下線</span>＝正解の語句
+          </span>
+        </div>
+        <article id="articleReviewBody" class="article-body">${body}</article>
+        ${missingHtml}
+      `;
+    }
+
+    function setArticleReviewOpen(open) {
+      state.showArticleReview = open;
+      const panel = document.getElementById('articleReviewPanel');
+      const btn = document.getElementById('articleReviewBtn');
+      if (panel) panel.style.display = open ? 'block' : 'none';
+      if (btn) btn.textContent = open ? '📖 元の記事を閉じる' : '📖 元の記事と出題箇所を確認する';
+    }
+
+    function toggleArticleReview() {
+      playTap();
+      setArticleReviewOpen(!state.showArticleReview);
+    }
+
+    // 問題番号を指定して、記事中の該当箇所までスクロールする
+    function openArticleAt(n) {
+      playTap();
+      setArticleReviewOpen(true);
+      const target = document.querySelector(`#articleReviewPanel [data-qs~="${n}"]`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.remove('flash');
+      void target.offsetWidth;
+      target.classList.add('flash');
+    }
+
+    function render(animateQuestionSlide = false) {
+      const root = document.getElementById('root');
+      if (!root) return;
+
+      if (state.screen === 'start') {
+        const lastText = state.scores.last !== null ? `${state.scores.last} pt` : '—';
+        const highText = `${state.scores.high || 0} pt`;
+        root.innerHTML = `
+          <main class="start-screen">
+            <div class="bg-shape bg-blob-left"></div>
+            <div class="bg-shape bg-ring-top"></div>
+            <div class="bg-shape bg-dots-right">
+              ${Array.from({ length: 16 }).map(() => '<span></span>').join('')}
+            </div>
+            <div class="bg-shape bg-blob-bottom-right"></div>
+
+            <div class="start-center">
+              <div class="start-eyebrow select-none anim-pop-1">WIKIPEDIA MEMORY QUIZ</div>
+              <h1 class="game-logo font-display anim-pop-2">SkimPediA</h1>
+              <p class="game-subtitle anim-pop-2">
+                未知の記事をパッと読んで記憶し、穴埋めの記述と絶妙に怪しい4択で記憶力を試す<br />
+                ミニマル記憶クイズゲーム
+              </p>
+              <button type="button" class="start-cta-btn anim-pop-3" onclick="goToModeSelect()">
+                <span>▶ START</span>
+              </button>
+              ${buildChallengeBannerHtml()}
+            </div>
+
+            <div class="score-card-bottom-left select-none anim-pop-3">
+              <div class="score-cell">
+                <div class="score-cell-label">前回スコア</div>
+                <div class="score-cell-value">${escapeHtml(lastText)}</div>
+              </div>
+              <div class="score-cell">
+                <div class="score-cell-label">ハイスコア</div>
+                <div class="score-cell-value">${escapeHtml(highText)}</div>
+              </div>
+            </div>
+          </main>
+        `;
+        return;
+      }
+
+      if (state.screen === 'mode') {
+        root.innerHTML = `
+          <div class="app-shell anim-screen">
+            <div class="main-card">
+              <div class="top-bar">
+                <div class="top-bar-left">
+                  <span class="brand-mini font-display select-none">SkimPediA</span>
+                  <span class="pill-badge select-none whitespace-nowrap">モード選択</span>
+                </div>
+                <div class="top-bar-right">
+                  <button type="button" class="btn-ghost-sm select-none whitespace-nowrap" onclick="goToStart()">
+                    タイトルへ
+                  </button>
+                </div>
+              </div>
+
+              <div class="guide-banner">
+                遊びたいモードを選んでください。記事を読んで要点を覚えたあと、まとめてクイズに挑戦します。
+              </div>
+
+              <div class="mode-grid">
+                ${Object.values(MODES).map(m => `
+                  <button type="button" class="mode-card" onclick="selectMode('${m.id}', false)">
+                    <div>
+                      <h2 class="font-display" style="margin:0 0 6px;font-size:22px;font-weight:900;color:#141414;">
+                        ${escapeHtml(m.name)}
+                      </h2>
+                      <p style="margin:0;font-size:13.5px;line-height:1.65;color:#555555;">
+                        ${escapeHtml(m.desc)}
+                      </p>
+                      ${m.id === 'daily' ? `<p style="margin:8px 0 0;font-size:12.5px;font-weight:800;color:#141414;">${escapeHtml(dailyStatusText())}</p>` : ''}
+                    </div>
+                    <div style="margin-top:16px;padding-top:12px;border-top:1px solid #e8e8e8;display:flex;justify-content:space-between;font-size:12.5px;font-weight:800;color:#181818;">
+                      <span>全${m.questionCount}問</span>
+                      <span>制限時間 ${Math.floor(m.timeLimitSec / 60)}分</span>
+                    </div>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (state.screen === 'loading') {
+        root.innerHTML = `
+          <div class="app-shell anim-screen">
+            <div class="main-card" style="text-align:center;padding:64px 24px;">
+              <div class="pill-badge select-none" style="margin-bottom:14px;">記事を取得中</div>
+              <h2 class="font-display" style="margin:0 0 8px;font-size:24px;font-weight:900;color:#141414;">
+                お題の記事を準備しています…
+              </h2>
+              <p style="margin:0;font-size:14px;color:#666666;">
+                少々お待ちください
+              </p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (state.screen === 'memorize') {
+        const modeCfg = MODES[state.modeId];
+        const art = state.article;
+        const charCount = countArticleChars(art);
+        const readMin = estimateReadMinutes(charCount);
+        const hasMemoText = state.memoText.trim().length > 0;
+
+        root.innerHTML = `
+          <div class="app-shell anim-screen">
+            <div class="main-card">
+              <div class="top-bar">
+                <div class="top-bar-left">
+                  <span class="brand-mini font-display select-none">SkimPediA</span>
+                  <span class="pill-badge select-none whitespace-nowrap">${escapeHtml(modeCfg.name)}（全${modeCfg.questionCount}問）</span>
+                  <span class="pill-badge dark select-none whitespace-nowrap">暗記フェーズ</span>
+                </div>
+                <div class="top-bar-right">
+                  <span id="timerDisplay" class="timer-pill select-none whitespace-nowrap ${state.timeLeftSec <= 60 ? 'warning' : ''}">
+                    ${formatTime(state.timeLeftSec)}
+                  </span>
+                  <button type="button" class="btn-ghost-sm select-none whitespace-nowrap" onclick="goToModeSelect()">
+                    モード変更
+                  </button>
+                  <button type="button" class="btn-ghost-sm select-none whitespace-nowrap" onclick="goToStart()">
+                    タイトルへ
+                  </button>
+                </div>
+              </div>
+
+              <div class="guide-banner">
+                ${modeCfg.flow
+                  ? '記事は時間とともに上から消えていきます。消える前に読み切って、重要な数字・名称・出来事を覚えましょう（マーカーは使えません）。'
+                  : '記事を読んで重要な数字・名称・出来事を覚えましょう。気になる箇所はドラッグ選択してマーカーを引けます。'}
+              </div>
+
+              <div class="article-head">
+                <div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    <span class="pill-badge select-none whitespace-nowrap">ジャンル：${escapeHtml(art.genre)}</span>
+                    <span class="pill-badge select-none whitespace-nowrap">難易度：${escapeHtml(art.difficulty)}</span>
+                  </div>
+                  <h1 class="article-title font-display">${escapeHtml(art.title)}</h1>
+                  <div class="article-meta">
+                    約 ${charCount} 文字（読む目安：約 ${readMin} 分） ・ 出典：ウィキペディア（Wikipedia）
+                  </div>
+                </div>
+
+                <div class="article-actions">
+                  ${state.modeId === 'daily' || state.activeChallenge ? '' : `<button
+                    type="button"
+                    class="btn-secondary select-none whitespace-nowrap"
+                    style="padding:8px 14px;font-size:13px;"
+                    ${state.rerollUsed ? 'disabled' : ''}
+                    onclick="selectMode('${state.modeId}', true)"
+                  >
+                    ${state.rerollUsed ? '引き直し済み' : '🔄 別の記事にする（1回）'}
+                  </button>`}
+                </div>
+              </div>
+
+              <div class="marker-bar select-none">
+                ${modeCfg.flow ? `                <div class="marker-controls">
+                  <span class="marker-label whitespace-nowrap">記事の残り：</span>
+                  <div class="flow-bar"><i id="flowBarFill"></i></div>
+                  <span id="flowLabel" class="marker-label whitespace-nowrap">100%</span>
+                </div>
+` : `                <div class="marker-controls">
+                  <span class="marker-label whitespace-nowrap">マーカー：</span>
+                  <button
+                    type="button"
+                    class="marker-btn whitespace-nowrap ${state.activeMarkerColor === 'yellow' ? 'active-yellow' : ''}"
+                    onclick="setMarkerColor('yellow')"
+                  >
+                    <span class="marker-dot yellow"></span>
+                    <span>黄</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="marker-btn whitespace-nowrap ${state.activeMarkerColor === 'pink' ? 'active-pink' : ''}"
+                    onclick="setMarkerColor('pink')"
+                  >
+                    <span class="marker-dot pink"></span>
+                    <span>ピンク</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="marker-btn whitespace-nowrap"
+                    onclick="clearAllMarkers()"
+                  >
+                    <span>消去</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-ghost-sm whitespace-nowrap"
+                    onclick="applySelectionHighlight()"
+                  >
+                    選択範囲に線を引く
+                  </button>
+                </div>
+`}
+                <div class="marker-right-tools">
+                  ${modeCfg.flow ? '' : '<span class="marker-hint-text whitespace-nowrap">文字をドラッグ選択して押すと線を引けます</span>'}
+                  <button
+                    type="button"
+                    class="memo-toggle-btn whitespace-nowrap ${state.memoOpen ? 'is-open' : ''}"
+                    onclick="toggleMemoDrawer()"
+                  >
+                    <span>📝 メモ</span>
+                    ${hasMemoText ? '<span class="memo-has-dot" title="メモ入力あり"></span>' : ''}
+                  </button>
+                </div>
+              </div>
+
+              ${state.memoOpen ? `
+                <div class="memo-drawer">
+                  <div class="memo-drawer-head">
+                    <span style="font-size:13px;font-weight:800;color:#141414;">暗記用メモ帳（クイズ中は非表示・結果画面で確認可能）</span>
+                    <button type="button" class="btn-ghost-sm whitespace-nowrap" onclick="state.memoText=''; render();">
+                      クリア
+                    </button>
+                  </div>
+                  <textarea
+                    class="memo-textarea"
+                    placeholder="年号・人名・キーワードなどを自由にメモできます…"
+                    oninput="state.memoText = this.value"
+                  >${escapeHtml(state.memoText)}</textarea>
+                </div>
+              ` : ''}
+
+              <article id="articleBody" class="article-body" ${modeCfg.flow ? '' : 'onmouseup="applySelectionHighlight()"'}>
+                ${modeCfg.flow ? buildFlowArticleHtml(art) : art.sections.map(sec => `
+                  <h3>${escapeHtml(sec.heading)}</h3>
+                  ${(sec.paragraphs || []).map(p => `<p>${escapeHtml(p)}</p>`).join('')}
+                `).join('')}
+              </article>
+
+              <div class="bottom-action-bar">
+                <span style="font-size:12.5px;color:#666666;">
+                  ショートカット：<code>Ctrl + Enter</code>（Macは <code>Cmd + Enter</code>）でクイズ開始
+                </span>
+                <button type="button" class="btn-primary whitespace-nowrap" onclick="startQuizPhase()">
+                  暗記完了！クイズへ進む
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        if (modeCfg.flow) startFlowTicker();
+        return;
+      }
+
+      if (state.screen === 'quiz') {
+        const modeCfg = MODES[state.modeId];
+        const q = state.questions[state.qIndex];
+        const total = state.questions.length;
+
+        root.innerHTML = `
+          <div class="app-shell anim-screen">
+            <div class="main-card">
+              <div class="top-bar">
+                <div class="top-bar-left">
+                  <span class="brand-mini font-display select-none">SkimPediA</span>
+                  <span class="pill-badge select-none whitespace-nowrap">${escapeHtml(modeCfg.name)}</span>
+                  <span class="pill-badge dark select-none whitespace-nowrap">第 ${state.qIndex + 1} / ${total} 問</span>
+                </div>
+                <div class="top-bar-right">
+                  <span id="timerDisplay" class="timer-pill select-none whitespace-nowrap ${state.timeLeftSec <= 60 ? 'warning' : ''}">
+                    ${formatTime(state.timeLeftSec)}
+                  </span>
+                  <button type="button" class="btn-ghost-sm select-none whitespace-nowrap" onclick="goToStart()">
+                    タイトルへ
+                  </button>
+                </div>
+              </div>
+
+              <div class="${animateQuestionSlide ? 'anim-question' : 'anim-screen'}" style="margin-top:20px;">
+                <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;">
+                  <span id="pointsPill" class="pill-badge select-none whitespace-nowrap">${escapeHtml(pointsPillText())}</span>
+                  <div style="display:flex;gap:8px;">
+                    <button
+                      type="button"
+                      id="hintBtn"
+                      class="btn-ghost-sm select-none whitespace-nowrap"
+                      ${state.hintUsedForCurrent || state.confident ? 'disabled' : ''}
+                      onclick="useHint()"
+                    >
+                      ${q.type === 'choice' ? '💡 50:50（2択に絞る・半分の点）' : '💡 頭文字ヒント（半分の点）'}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-ghost-sm select-none whitespace-nowrap"
+                      onclick="skipCurrentQuestion()"
+                    >
+                      スキップ
+                    </button>
+                  </div>
+                </div>
+
+                ${buildBetRowHtml()}
+
+                <h2 class="font-display" style="margin:16px 0 20px;font-size:clamp(19px,2.4vw,25px);font-weight:900;line-height:1.5;color:#141414;white-space:pre-line;">
+                  ${escapeHtml(q.prompt)}
+                </h2>
+
+                ${q.type === 'choice' ? `
+                <div class="answer-hint select-none">
+                  <span>💡 ヒント：</span><strong>4択（正しいものを1つ選んでください）</strong>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+                  ${q.options.map((opt, idx) => {
+                    const isElim = state.eliminatedChoices.includes(opt);
+                    return `
+                      <button
+                        type="button"
+                        class="choice-btn"
+                        ${isElim ? 'disabled' : ''}
+                        onclick="submitAnswer(${JSON.stringify(opt).replace(/"/g, '&quot;')})"
+                      >
+                        <span class="choice-key select-none">${idx + 1}</span>
+                        <span>${escapeHtml(opt)}</span>
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+
+                <div class="kbd-hint" style="margin-top:18px;font-size:12px;color:#777777;">
+                  <code>1</code>〜<code>4</code> で回答、<code>Alt</code>（Macは <code>Option</code>）＋ <code>C</code> で自信度の切替、<code>H</code> で50:50（結果は最後にまとめて採点されます）
+                </div>
+                ` : `
+                <div class="answer-hint select-none">
+                  <span>💡 ヒント：</span><strong>${escapeHtml(q.shape)}</strong>
+                  ${state.hintUsedForCurrent ? `<span>／ 頭文字：</span><strong>${escapeHtml(q.firstChar)}</strong>` : ''}
+                </div>
+
+                <div class="answer-row">
+                  <input
+                    id="answerInput"
+                    class="answer-input"
+                    type="text"
+                    inputmode="text"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                    enterkeyhint="done"
+                    placeholder="ここに答えを入力"
+                    aria-label="答え"
+                    value="${escapeHtml(state.draftAnswer)}"
+                    oninput="onAnswerInput(this)"
+                    onkeydown="onAnswerKeyDown(event)"
+                  />
+                  <button type="button" class="btn-primary whitespace-nowrap" onclick="submitAnswerFromInput()">回答する</button>
+                </div>
+                <div id="answerNote" class="answer-note"></div>
+
+                <div class="kbd-hint" style="margin-top:18px;font-size:12px;color:#777777;">
+                  <code>Enter</code> で回答、<code>Alt</code>（Macは <code>Option</code>）＋ <code>C</code> で自信度の切替、<code>H</code> で頭文字ヒント（結果は最後にまとめて採点されます）
+                </div>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+        const answerInput = document.getElementById('answerInput');
+        if (answerInput) {
+          answerInput.focus({ preventScroll: true });
+          const end = answerInput.value.length;
+          answerInput.setSelectionRange(end, end);
+        }
+        return;
+      }
+
+      if (state.screen === 'result') {
+        const modeCfg = MODES[state.modeId];
+        const correctCount = state.answers.filter(a => a.isCorrect).length;
+        const totalCount = state.answers.length;
+        const rate = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+
+        root.innerHTML = `
+          <div class="app-shell anim-screen">
+            <div class="main-card">
+              <div class="top-bar">
+                <div class="top-bar-left">
+                  <span class="brand-mini font-display select-none">SkimPediA</span>
+                  <span class="pill-badge select-none whitespace-nowrap">${escapeHtml(modeCfg.name)}</span>
+                  <span class="pill-badge dark select-none whitespace-nowrap">最終採点結果</span>
+                </div>
+                <div class="top-bar-right">
+                  <button type="button" class="btn-ghost-sm select-none whitespace-nowrap" onclick="goToStart()">
+                    タイトルへ
+                  </button>
+                </div>
+              </div>
+
+              ${buildVersusBannerHtml()}
+
+              <div class="result-summary-grid">
+                <div class="stat-box">
+                  <div class="stat-box-label">獲得スコア</div>
+                  <div class="stat-box-value">${state.score} pt</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-box-label">正解数</div>
+                  <div class="stat-box-value">${correctCount} / ${totalCount} 問</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-box-label">正答率</div>
+                  <div class="stat-box-value">${rate}%</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-box-label">ハイスコア</div>
+                  <div class="stat-box-value">${state.scores.high || 0} pt</div>
+                </div>
+              </div>
+
+              ${state.modeId !== 'tutorial' ? buildShareCardHtml() : ''}
+
+              <div style="margin-top:16px;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;">
+                <a
+                  class="btn-secondary whitespace-nowrap"
+                  style="padding:9px 16px;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;"
+                  href="${escapeHtml(getWikipediaUrl(state.article))}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >🌐 Wikipediaで全文を読む ↗</a>
+                <button
+                  type="button"
+                  id="articleReviewBtn"
+                  class="btn-secondary whitespace-nowrap"
+                  style="padding:9px 16px;font-size:13px;"
+                  onclick="toggleArticleReview()"
+                >${state.showArticleReview ? '📖 元の記事を閉じる' : '📖 元の記事と出題箇所を確認する'}</button>
+              </div>
+
+              <div id="articleReviewPanel" class="article-review-panel" style="display:${state.showArticleReview ? 'block' : 'none'};">
+                ${buildArticleReviewHtml(state.article, state.answers.map(a => a.question))}
+              </div>
+
+              ${state.memoText.trim() ? `
+                <div style="margin-top:16px;padding:14px 16px;border-radius:16px;background:#fafafa;border:1px solid #e4e4e4;">
+                  <div style="font-size:12.5px;font-weight:800;color:#141414;margin-bottom:6px;">📝 暗記中に書いたメモ</div>
+                  <div style="font-size:13.5px;line-height:1.65;white-space:pre-wrap;color:#333333;">${escapeHtml(state.memoText)}</div>
+                </div>
+              ` : ''}
+
+              <div style="margin-top:22px;display:flex;flex-direction:column;gap:12px;">
+                ${state.answers.map((item, idx) => {
+                  const statusText = item.isSkipped
+                    ? 'スキップ'
+                    : `${item.confident ? '🔥 ' : ''}${item.isCorrect ? '正解' : '不正解'} (${formatPoints(item.pointsEarned)} pt)`;
+                  return `
+                    <div class="review-item" style="animation: fadeSlideUp 0.35s var(--ease-spring) ${Math.min(idx * 0.05, 0.4)}s both;">
+                      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;">
+                        <span style="font-size:12.5px;font-weight:800;color:#555555;">第 ${idx + 1} 問</span>
+                        <span class="pill-badge ${item.isCorrect ? 'dark' : ''} select-none whitespace-nowrap">${escapeHtml(statusText)}</span>
+                      </div>
+                      <div style="margin-top:8px;font-size:15px;font-weight:800;color:#141414;white-space:pre-line;">
+                        ${escapeHtml(item.question.prompt)}
+                      </div>
+                      <div style="margin-top:8px;font-size:13.5px;line-height:1.6;color:#333333;">
+                        <div>あなたの回答：<strong>${item.isSkipped ? '（スキップ）' : escapeHtml(item.chosen)}</strong></div>
+                        <div>正解：<strong>${escapeHtml(item.question.answer)}</strong></div>
+                        ${item.question.sourceText ? `<div style="margin-top:4px;font-size:12.5px;color:#666666;">記事の該当箇所：「${escapeHtml(item.question.sourceText)}」</div>` : ''}
+                      </div>
+                      ${item.question.sourceText ? `
+                        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;">
+                          <button type="button" class="btn-ghost-sm select-none whitespace-nowrap" onclick="openArticleAt(${idx + 1})">
+                            📍 記事の該当箇所を見る
+                          </button>
+                          ${item.isCorrect ? '' : `<a class="btn-ghost-sm select-none whitespace-nowrap" style="text-decoration:none;display:inline-flex;align-items:center;" href="${escapeHtml(getWikipediaUrl(state.article))}" target="_blank" rel="noopener noreferrer">📚 Wikipediaで復習 ↗</a>`}
+                        </div>` : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+
+              <div class="bottom-action-bar">
+                <button type="button" class="btn-secondary whitespace-nowrap" onclick="goToModeSelect()">
+                  別のモードを選ぶ
+                </button>
+                <button type="button" class="btn-primary whitespace-nowrap" onclick="selectMode('${state.modeId}', false)">
+                  もう一度同じモードで遊ぶ
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        if (state.modeId !== 'tutorial') updateSharePreview();
+      }
+    }
+
+    // Initial Render
+    function mountAudioButton() {
+      const btn = document.createElement('button');
+      btn.id = 'audioToggleBtn';
+      btn.type = 'button';
+      btn.className = 'top-audio-btn select-none whitespace-nowrap';
+      btn.onclick = toggleMute;
+      btn.innerHTML = `<span id="audioIcon">${isMuted ? '🔇' : '🔊'}</span> <span id="audioLabel">${isMuted ? '音: OFF' : '音: ON'}</span>`;
+      document.body.insertBefore(btn, document.body.firstChild);
+    }
+    mountAudioButton();
+    state.challenge = parseChallengeFromHash();
+    // 開いたままの別タブでリンクを開き直した時にも、挑戦状を受け取る
+    window.addEventListener('hashchange', () => {
+      const c = parseChallengeFromHash();
+      if (!c) return;
+      state.challenge = c;
+      state.challengeError = false;
+      if (state.screen === 'start') render();
+      else goToStart();
+    });
+    render();
+  </script>
+</body>
+</html>
